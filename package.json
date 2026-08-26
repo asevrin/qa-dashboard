@@ -1,0 +1,39 @@
+{
+  "name": "@asevrin/qa-dashboard",
+  "version": "0.1.0",
+  "description": "Private Allure report portal with history, quality gates, and Cloudflare access control.",
+  "license": "MIT",
+  "type": "commonjs",
+  "bin": {
+    "qa-dashboard": "bin/qa-dashboard.cjs"
+  },
+  "files": [
+    "bin",
+    "lib",
+    "portal",
+    "templates",
+    "worker"
+  ],
+  "scripts": {
+    "test": "node --test test/*.test.cjs",
+    "check": "node --check bin/qa-dashboard.cjs && node --check lib/build-report-site.cjs && node --check lib/report-domain.cjs && node --check worker/qa-reports-worker.mjs"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/asevrin/qa-dashboard.git"
+  },
+  "bugs": {
+    "url": "https://github.com/asevrin/qa-dashboard/issues"
+  },
+  "homepage": "https://github.com/asevrin/qa-dashboard#readme",
+  "keywords": [
+    "allure",
+    "playwright",
+    "qa",
+    "testing",
+    "cloudflare"
+  ]
+}

@@ -1,0 +1,121 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="color-scheme" content="dark light" />
+    <title>Test Dashboard</title>
+    <link rel="stylesheet" href="./app.css" />
+  </head>
+  <body>
+    <main class="shell">
+      <header class="topbar">
+        <a class="brand" href="/" aria-label="Test Dashboard home"
+          ><span class="brand-mark">T</span><span>Test Dashboard</span></a
+        >
+        <nav class="header-actions" aria-label="Portal actions">
+          <span class="quality-gate loading" id="quality-gate"
+            >Checking quality…</span
+          >
+          <button
+            class="theme-toggle"
+            id="theme-toggle"
+            type="button"
+            aria-label="Switch color theme"
+          >
+            <span aria-hidden="true">◐</span><span id="theme-label">Dark</span>
+          </button>
+          <a class="logout" href="/logout">Log out</a>
+        </nav>
+      </header>
+
+      <section class="hero">
+        <div>
+          <p class="hero-copy">
+            Browse API and UI test runs, review results, and open detailed
+            Allure reports.
+          </p>
+        </div>
+        <a class="latest-button" id="latest-button" href="./latest/"
+          >Open latest report <span>→</span></a
+        >
+      </section>
+
+      <section
+        class="kpi-grid"
+        id="kpi-grid"
+        aria-label="Test run summary"
+      ></section>
+
+      <section class="analytics-grid">
+        <article class="panel trend-panel">
+          <div class="panel-heading">
+            <div>
+              <p class="panel-kicker">Trend</p>
+              <h2>Pass rate over time</h2>
+            </div>
+            <span class="legend"><i></i> Pass rate</span>
+          </div>
+          <div
+            class="trend-chart"
+            id="trend-chart"
+            aria-label="Pass-rate chart"
+          ></div>
+        </article>
+        <article class="panel insights-panel" id="insights-panel"></article>
+      </section>
+
+      <section class="runs-section">
+        <div class="runs-heading">
+          <div>
+            <p class="panel-kicker">History</p>
+            <h2>Test runs</h2>
+          </div>
+          <span class="result-count" id="result-count"></span>
+        </div>
+        <div
+          class="type-tabs"
+          id="type-tabs"
+          role="tablist"
+          aria-label="Test type"
+        >
+          <button class="active" data-type="all" role="tab">All runs</button
+          ><button data-type="api" role="tab">API</button
+          ><button data-type="ui" role="tab">UI</button>
+        </div>
+        <div class="filters">
+          <label class="search"
+            ><span aria-hidden="true">⌕</span
+            ><input
+              id="search"
+              type="search"
+              placeholder="Search run, branch, commit…"
+          /></label>
+          <select id="status-filter" aria-label="Filter by status">
+            <option value="all">All statuses</option>
+            <option value="passed">Passed</option>
+            <option value="failed">Failed</option>
+          </select>
+          <select id="environment-filter" aria-label="Filter by environment">
+            <option value="all">All environments</option>
+          </select>
+          <select id="period-filter" aria-label="Filter by period">
+            <option value="all">All time</option>
+            <option value="7">Last 7 days</option>
+            <option value="30">Last 30 days</option>
+          </select>
+        </div>
+        <div class="run-grid" id="run-grid"></div>
+        <nav class="pagination" id="pagination" aria-label="Report pages"></nav>
+      </section>
+    </main>
+    <template id="empty-template"
+      ><div class="empty-state">
+        <span>⌁</span>
+        <h3>No matching runs</h3>
+        <p>Try clearing one of the filters.</p>
+      </div></template
+    >
+    <script src="./app.js" defer></script>
+  </body>
+</html>

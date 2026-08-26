@@ -1,0 +1,12 @@
+{
+  "name": "{{WORKER_NAME}}",
+  "main": "./node_modules/@asevrin/qa-dashboard/worker/qa-reports-worker.mjs",
+  "compatibility_date": "2026-08-27",
+  "workers_dev": true,
+  "preview_urls": false,
+  "assets": {
+    "directory": "./reports-site/site",
+    "binding": "ASSETS",
+    "run_worker_first": true
+  }
+}

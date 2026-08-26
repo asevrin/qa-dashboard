@@ -1,0 +1,12 @@
+{
+  "projectName": "{{PROJECT_NAME}}",
+  "reportType": "api",
+  "environment": "Staging",
+  "allureReportDirectory": "allure-report",
+  "reportsSiteDirectory": "reports-site/site",
+  "retentionLimit": 30,
+  "qualityGates": {
+    "readyPassRate": 95,
+    "blockedPassRate": 85
+  }
+}
