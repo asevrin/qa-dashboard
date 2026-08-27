@@ -1,12 +1,13 @@
 # QA Dashboard
 
-A reusable, private Allure report portal for Playwright test projects. It keeps report history in Git, deploys a static dashboard to Cloudflare Workers, protects it with a custom login, and provides filtering, trends, quality gates, regression comparison, pagination, dark mode, and optional Slack alerts.
+A reusable, private QA reporting portal for Playwright and k6 projects. It keeps report history in Git, deploys a static dashboard to Cloudflare Workers, protects it with a custom login, and provides functional and performance trends, quality gates, regression comparison, pagination, dark mode, and optional Slack alerts.
 
 The package is deliberately separate from the test framework. A test repository owns only its configuration, generated GitHub workflow, and Cloudflare deployment name.
 
 ## What it provides
 
-- a dashboard for API and UI Allure runs, with search, filters, pagination and theme selection;
+- a dashboard for API, UI and integration Allure runs, with search, filters, pagination and theme selection;
+- a performance section for k6 runs, including p95, p99, error rate, RPS, quality gates and HTML report links;
 - up to 30 historical reports by default, sorted by creation time rather than folder name;
 - Allure report navigation back to the dashboard;
 - regression analysis against the previous run of the same type and environment;
@@ -26,7 +27,7 @@ The package is deliberately separate from the test framework. A test repository 
 Until the package is published to npm, install a tagged GitHub release:
 
 ```bash
-pnpm add -D github:asevrin/qa-dashboard#v0.1.0
+pnpm add -D github:asevrin/qa-dashboard#v0.2.0
 ```
 
 From the root of the test repository, initialize it. Choose a globally unique Worker name and replace the test command when necessary:
@@ -73,6 +74,7 @@ Create these GitHub repository secrets under **Settings → Secrets and variable
 | `REPORTS_SESSION_SECRET` | Yes | Cookie-signing secret, e.g. `openssl rand -hex 32` |
 | `SLACK_WEBHOOK_URL` | No | Enables Slack notifications for new failures |
 | `REPORTS_PORTAL_URL` | No | Adds an Open dashboard button to Slack |
+| `K6_AUTH_PASSWORD` | No | Password for k6 authenticated scenarios, if that project uses one |
 
 Your test target secrets (for example `API_BASE_URL`) remain specific to the test project. Add them to the `Run tests` workflow step, rather than to this package.
 
@@ -80,13 +82,16 @@ The generated Worker configuration uses `workers.dev`. The first workflow deploy
 
 ## Workflow adaptation
 
-The generated workflow is a working API example. Edit only the project-specific parts:
+The generated workflow has independent API, UI, integration and performance jobs. It uses path filters for functional test changes, provides manual suite/environment/scenario inputs, and keeps a nightly full functional regression plus a k6 smoke run.
 
-1. Add test target environment variables to **Run tests**, if required.
-2. Change the test command by regenerating the workflow with `init --force`, or edit that one step.
-3. Change `REPORT_TYPE` and `REPORT_ENVIRONMENT` for the job.
+Edit only the project-specific parts:
 
-For UI and API suites, use separate jobs (or duplicate the publishing part) and set `REPORT_TYPE: ui` / `REPORT_TYPE: api`. Each job needs a distinct Allure output directory if they run in parallel.
+1. Add test target secrets to every relevant functional job.
+2. Adjust path filters to the repository’s actual folders.
+3. Remove a job if that project does not have the corresponding suite.
+4. Keep k6 manual/scheduled unless the target environment explicitly allows automated load tests.
+
+Test jobs upload artifacts. The single `publish-reports` job downloads them, builds history sequentially, commits once to `reports`, and deploys once. This is what prevents parallel Git conflicts.
 
 The workflow intentionally uses this command for Wrangler:
 
@@ -104,13 +109,23 @@ The `--` separator matters: it ensures `--config` is passed to Wrangler rather t
 {
   "projectName": "Client X",
   "reportType": "api",
+  "reportTypes": ["api", "ui", "integrations"],
   "environment": "Staging",
   "allureReportDirectory": "allure-report",
   "reportsSiteDirectory": "reports-site/site",
   "retentionLimit": 30,
+  "performanceRetentionLimit": 30,
   "qualityGates": {
     "readyPassRate": 95,
     "blockedPassRate": 85
+  },
+  "performanceGates": {
+    "readyErrorRate": 0.01,
+    "blockedErrorRate": 0.03,
+    "readyP95Ms": 800,
+    "blockedP95Ms": 1500,
+    "readyP99Ms": 1500,
+    "blockedP99Ms": 3000
   }
 }
 ```
@@ -121,11 +136,13 @@ The `--` separator matters: it ensures `--config` is passed to Wrangler rather t
 
 ```bash
 pnpm exec qa-dashboard build
+pnpm exec qa-dashboard build --source=allure-ui --type=ui --environment=Staging --run-id=42 --status=success
+pnpm exec qa-dashboard publish-performance --summary=performance-results/public/summary.json --html=performance-results/public/report.html --scenario=public --environment=Staging --run-id=42 --status=success
 pnpm exec qa-dashboard create-secrets .report-secrets.json
 pnpm exec qa-dashboard notify-slack reports-site/site/dashboard-data/reports.json
 ```
 
-`build` requires `RUN_ID` and `TEST_STATUS`, unless `REPORT_NAME` is supplied. The GitHub workflow provides these automatically.
+`build` requires `RUN_ID` and `TEST_STATUS`, unless `REPORT_NAME` is supplied. The CLI also accepts `--source`, `--type`, `--environment`, `--run-id` and `--status`, which are used by the sequential publisher job.
 
 ## Development and release
 
@@ -139,8 +156,8 @@ pnpm run check
 Release a new version with a Git tag after the changes are merged:
 
 ```bash
-git tag v0.1.1
-git push origin v0.1.1
+git tag v0.2.0
+git push origin v0.2.0
 ```
 
 Consumer repositories then update the git dependency to that tag. Publishing to npm or GitHub Packages can be added later without changing the package API.

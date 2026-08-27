@@ -7,6 +7,10 @@ const state = {
   query: "",
   page: 1,
   pageSize: 9,
+  performanceRuns: [],
+  performanceScenario: "all",
+  performanceEnvironment: "all",
+  performancePeriod: "all",
 };
 const $ = (selector) => document.querySelector(selector);
 const formatNumber = new Intl.NumberFormat("en-US");
@@ -32,6 +36,18 @@ function passRate(report) {
 function reportDate(report) {
   return dateFormatter.format(new Date(report.createdAt));
 }
+function percentage(value) {
+  return Number.isFinite(Number(value)) ? `${(Number(value) * 100).toFixed(2)}%` : "—";
+}
+function milliseconds(value) {
+  return Number.isFinite(Number(value)) ? `${Math.round(Number(value))} ms` : "—";
+}
+function requestsPerSecond(value) {
+  return Number.isFinite(Number(value)) ? `${Number(value).toFixed(1)} rps` : "—";
+}
+function gateLabel(gate) {
+  return gate === "at-risk" ? "At risk" : gate === "blocked" ? "Blocked" : "Ready";
+}
 
 function filteredReports() {
   const now = Date.now();
@@ -53,6 +69,16 @@ function filteredReports() {
       matchesPeriod &&
       search.includes(state.query)
     );
+  });
+}
+
+function filteredPerformanceRuns() {
+  const now = Date.now();
+  return state.performanceRuns.filter((run) => {
+    const matchesScenario = state.performanceScenario === "all" || run.scenario === state.performanceScenario;
+    const matchesEnvironment = state.performanceEnvironment === "all" || run.environment === state.performanceEnvironment;
+    const matchesPeriod = state.performancePeriod === "all" || Date.parse(run.createdAt) >= now - Number(state.performancePeriod) * 86400000;
+    return matchesScenario && matchesEnvironment && matchesPeriod;
   });
 }
 
@@ -103,16 +129,9 @@ function renderKpis(reports) {
     )
     .join("");
   const gate = $("#quality-gate");
-  const gateLabel =
-    latest?.gate === "at-risk"
-      ? "At risk"
-      : latest?.gate === "blocked"
-        ? "Blocked"
-        : latest?.gate === "ready"
-          ? "Ready"
-          : "No data";
+  const latestGateLabel = latest?.gate ? gateLabel(latest.gate) : "No data";
   gate.className = `quality-gate ${latest?.gate || "loading"}`;
-  gate.textContent = gateLabel;
+  gate.textContent = latestGateLabel;
 }
 
 function renderChart(reports) {
@@ -219,13 +238,7 @@ function renderRuns(reports) {
       const regression = delta?.comparable
         ? `<div class="regression"><span class="${delta.newFailures.length ? "negative" : "neutral"}">+${delta.newFailures.length} new failures</span><span class="${delta.recovered.length ? "positive" : "neutral"}">↗ ${delta.recovered.length} recovered</span></div>`
         : "";
-      const gateLabel =
-        report.gate === "at-risk"
-          ? "At risk"
-          : report.gate === "blocked"
-            ? "Blocked"
-            : "Ready";
-      return `<article class="run-card ${report.status}"><div class="run-top"><span class="badge ${report.type}">${report.type}</span><span class="run-badges"><span class="quality-gate ${report.gate}">${gateLabel}</span><span class="run-time">${reportDate(report)}</span></span></div><h3 class="run-title">Run #${report.runId || "—"}</h3><div class="run-meta">${context}</div><div class="metrics"><div class="metric"><span>Pass rate</span><strong class="${passRate(report) >= 90 ? "up" : "down"}">${passRate(report)}%</strong></div><div class="metric"><span>Tests</span><strong>${report.total}</strong></div><div class="metric"><span>Issues</span><strong class="${report.failed + report.broken ? "down" : "up"}">${report.failed + report.broken}</strong></div></div>${regression}<div class="run-footer"><span>${duration(report.duration)}</span><span class="run-links">${workflowLink}<a class="open-report" href="${report.href}">Open report →</a></span></div></article>`;
+      return `<article class="run-card ${report.status}"><div class="run-top"><span class="badge ${report.type}">${report.type}</span><span class="run-badges"><span class="quality-gate ${report.gate}">${gateLabel(report.gate)}</span><span class="run-time">${reportDate(report)}</span></span></div><h3 class="run-title">Run #${report.runId || "—"}</h3><div class="run-meta">${context}</div><div class="metrics"><div class="metric"><span>Pass rate</span><strong class="${passRate(report) >= 90 ? "up" : "down"}">${passRate(report)}%</strong></div><div class="metric"><span>Tests</span><strong>${report.total}</strong></div><div class="metric"><span>Issues</span><strong class="${report.failed + report.broken ? "down" : "up"}">${report.failed + report.broken}</strong></div></div>${regression}<div class="run-footer"><span>${duration(report.duration)}</span><span class="run-links">${workflowLink}<a class="open-report" href="${report.href}">Open report →</a></span></div></article>`;
     })
     .join("");
   renderPagination(pages);
@@ -257,12 +270,61 @@ function renderPagination(pages) {
     );
 }
 
+function performanceTrend(runs, field, label, formatter) {
+  const series = [...runs]
+    .filter((run) => Number.isFinite(Number(run[field])))
+    .slice(0, 12)
+    .reverse();
+  if (series.length < 2)
+    return `<article class="performance-trend"><span>${label}</span><strong>${series[0] ? formatter(series[0][field]) : "—"}</strong><small>Waiting for more runs</small></article>`;
+  const values = series.map((run) => Number(run[field]));
+  const minimum = Math.min(...values);
+  const maximum = Math.max(...values);
+  const width = 180, height = 54, padding = 5;
+  const points = values.map((value, index) => {
+    const x = padding + index * ((width - padding * 2) / (values.length - 1));
+    const y = maximum === minimum ? height / 2 : padding + ((maximum - value) / (maximum - minimum)) * (height - padding * 2);
+    return `${x},${y}`;
+  }).join(" ");
+  return `<article class="performance-trend"><span>${label}</span><strong>${formatter(values.at(-1))}</strong><svg viewBox="0 0 ${width} ${height}" aria-label="${label} trend"><polyline points="${points}"/></svg></article>`;
+}
+
+function renderPerformance() {
+  const runs = filteredPerformanceRuns();
+  const section = $("#performance-section");
+  section.hidden = state.performanceRuns.length === 0;
+  if (section.hidden) return;
+
+  const latest = runs[0];
+  $("#performance-result-count").textContent = `${runs.length} run${runs.length === 1 ? "" : "s"}`;
+  $("#performance-summary").innerHTML = [
+    ["Latest gate", latest ? gateLabel(latest.gate) : "—", latest?.gate || ""],
+    ["p95 latency", latest ? milliseconds(latest.p95) : "—", latest?.gate === "blocked" ? "down" : ""],
+    ["Error rate", latest ? percentage(latest.errorRate) : "—", latest?.gate === "blocked" ? "down" : ""],
+    ["Throughput", latest ? requestsPerSecond(latest.requestsPerSecond) : "—", ""],
+  ].map(([label, value, tone]) => `<article class="performance-kpi"><span>${label}</span><strong class="${tone}">${value}</strong></article>`).join("");
+  $("#performance-trends").innerHTML = [
+    performanceTrend(runs, "p95", "p95 latency", milliseconds),
+    performanceTrend(runs, "p99", "p99 latency", milliseconds),
+    performanceTrend(runs, "errorRate", "Error rate", percentage),
+    performanceTrend(runs, "requestsPerSecond", "Throughput", requestsPerSecond),
+  ].join("");
+  $("#performance-grid").innerHTML = runs.length ? runs.slice(0, 9).map((run) => {
+    const workflow = run.workflowUrl ? `<a class="workflow-link" href="${run.workflowUrl}" target="_blank" rel="noreferrer">GitHub run ↗</a>` : "";
+    const report = run.href ? `<a class="open-report" href="${run.href}" target="_blank" rel="noreferrer">Open report →</a>` : "";
+    const context = [run.environment, run.branch, run.commit].filter(Boolean).join(" · ");
+    const thresholds = run.thresholdFailures?.length ? `<div class="regression"><span class="negative">${run.thresholdFailures.length} failed threshold${run.thresholdFailures.length === 1 ? "" : "s"}</span></div>` : "";
+    return `<article class="run-card performance-card ${run.gate}"><div class="run-top"><span class="badge performance">${run.scenario}</span><span class="run-badges"><span class="quality-gate ${run.gate}">${gateLabel(run.gate)}</span><span class="run-time">${reportDate(run)}</span></span></div><h3 class="run-title">Performance run #${run.runId || "—"}</h3><div class="run-meta">${context}</div><div class="metrics"><div class="metric"><span>p95</span><strong>${milliseconds(run.p95)}</strong></div><div class="metric"><span>Error rate</span><strong class="${run.errorRate >= 0.01 ? "down" : "up"}">${percentage(run.errorRate)}</strong></div><div class="metric"><span>RPS</span><strong>${requestsPerSecond(run.requestsPerSecond)}</strong></div></div>${thresholds}<div class="run-footer"><span>${formatNumber.format(run.maxVUs || 0)} max VUs</span><span class="run-links">${workflow}${report}</span></div></article>`;
+  }).join("") : $("#empty-template").innerHTML;
+}
+
 function render() {
   const visible = filteredReports();
   renderKpis(visible);
   renderChart(visible);
   renderInsights(visible);
   renderRuns(visible);
+  renderPerformance();
 }
 
 function initializeTheme() {
@@ -287,7 +349,12 @@ async function boot() {
     cache: "no-store",
   });
   const payload = await response.json();
+  const performanceResponse = await fetch("./dashboard-data/performance.json", {
+    cache: "no-store",
+  }).catch(() => null);
+  const performancePayload = performanceResponse?.ok ? await performanceResponse.json() : { runs: [] };
   state.reports = payload.reports || [];
+  state.performanceRuns = performancePayload.runs || [];
   const environments = [
     ...new Set(
       state.reports.map((report) => report.environment).filter(Boolean),
@@ -303,6 +370,10 @@ async function boot() {
       .join(""),
   );
   $("#latest-button").href = state.reports[0]?.href || "./latest/";
+  const performanceEnvironments = [...new Set(state.performanceRuns.map((run) => run.environment).filter(Boolean))].sort();
+  const scenarios = [...new Set(state.performanceRuns.map((run) => run.scenario).filter(Boolean))].sort();
+  $("#performance-environment-filter").insertAdjacentHTML("beforeend", performanceEnvironments.map((environment) => `<option value="${environment}">${environment}</option>`).join(""));
+  $("#performance-scenario-filter").insertAdjacentHTML("beforeend", scenarios.map((scenario) => `<option value="${scenario}">${scenario}</option>`).join(""));
   document.querySelectorAll("#type-tabs button").forEach((button) =>
     button.addEventListener("click", () => {
       state.type = button.dataset.type;
@@ -331,6 +402,18 @@ async function boot() {
     state.period = event.target.value;
     state.page = 1;
     render();
+  });
+  $("#performance-scenario-filter").addEventListener("change", (event) => {
+    state.performanceScenario = event.target.value;
+    renderPerformance();
+  });
+  $("#performance-environment-filter").addEventListener("change", (event) => {
+    state.performanceEnvironment = event.target.value;
+    renderPerformance();
+  });
+  $("#performance-period-filter").addEventListener("change", (event) => {
+    state.performancePeriod = event.target.value;
+    renderPerformance();
   });
   render();
 }

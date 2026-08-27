@@ -1,6 +1,6 @@
 {
   "name": "@asevrin/qa-dashboard",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Private Allure report portal with history, quality gates, and Cloudflare access control.",
   "license": "MIT",
   "type": "commonjs",
@@ -16,7 +16,7 @@
   ],
   "scripts": {
     "test": "node --test test/*.test.cjs",
-    "check": "node --check bin/qa-dashboard.cjs && node --check lib/build-report-site.cjs && node --check lib/report-domain.cjs && node --check worker/qa-reports-worker.mjs"
+    "check": "node --check bin/qa-dashboard.cjs && node --check lib/build-report-site.cjs && node --check lib/publish-performance.cjs && node --check lib/performance-domain.cjs && node --check portal/app.js && node --check worker/qa-reports-worker.mjs"
   },
   "engines": {
     "node": ">=20"

@@ -1,105 +1,315 @@
-name: Test reports
+name: QA checks and reports
 
 on:
-  workflow_dispatch:
+  pull_request:
+    branches: [main]
   push:
     branches: [main]
+  schedule:
+    - cron: "0 2 * * *"
+  workflow_dispatch:
+    inputs:
+      suite:
+        description: Test suite to run
+        type: choice
+        required: true
+        default: all
+        options: [api, ui, api-ui, integrations, all, performance]
+      environment:
+        description: Target environment label
+        type: choice
+        required: true
+        default: Staging
+        options: [Staging, Production]
+      performance_scenario:
+        description: k6 scenario when Performance is selected
+        type: choice
+        required: true
+        default: public
+        options: [public, auth, mixed]
 
 permissions:
   contents: write
+  pull-requests: read
 
 concurrency:
-  group: qa-reports
+  group: qa-reports-${{ github.ref }}
   cancel-in-progress: false
 
 jobs:
-  test-and-publish:
+  detect-changes:
     runs-on: ubuntu-latest
-
+    outputs:
+      api: ${{ github.event_name == 'schedule' || (github.event_name == 'workflow_dispatch' && (inputs.suite == 'api' || inputs.suite == 'api-ui' || inputs.suite == 'all')) || (github.event_name != 'workflow_dispatch' && (steps.filter.outputs.api == 'true' || steps.filter.outputs.shared == 'true')) }}
+      ui: ${{ github.event_name == 'schedule' || (github.event_name == 'workflow_dispatch' && (inputs.suite == 'ui' || inputs.suite == 'api-ui' || inputs.suite == 'all')) || (github.event_name != 'workflow_dispatch' && (steps.filter.outputs.ui == 'true' || steps.filter.outputs.shared == 'true')) }}
+      integrations: ${{ github.event_name == 'schedule' || (github.event_name == 'workflow_dispatch' && (inputs.suite == 'integrations' || inputs.suite == 'all')) || (github.event_name != 'workflow_dispatch' && (steps.filter.outputs.integrations == 'true' || steps.filter.outputs.shared == 'true')) }}
+      performance: ${{ github.event_name == 'schedule' || (github.event_name == 'workflow_dispatch' && inputs.suite == 'performance') }}
     steps:
-      - name: Checkout test code
-        uses: actions/checkout@v6
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+      - id: filter
+        uses: dorny/paths-filter@v4
+        with:
+          base: ${{ github.ref }}
+          filters: |
+            api:
+              - 'tests/api/**'
+              - 'src/api/**'
+            ui:
+              - 'tests/ui/**'
+            integrations:
+              - 'tests/integration/**'
+            shared:
+              - 'src/core/**'
+              - 'playwright.config.ts'
+              - 'package.json'
+              - 'pnpm-lock.yaml'
+              - 'qa-dashboard.config.json'
+              - 'qa-dashboard.wrangler.jsonc'
+              - '.github/workflows/**'
 
-      - name: Set up pnpm
-        uses: pnpm/action-setup@v4
+  api-tests:
+    needs: detect-changes
+    if: needs.detect-changes.outputs.api == 'true'
+    runs-on: ubuntu-latest
+    outputs:
+      outcome: ${{ steps.tests.outcome }}
+    steps:
+      - uses: actions/checkout@v6
+      - uses: pnpm/action-setup@v4
         with:
           version: 11
-
-      - name: Set up Node.js
-        uses: actions/setup-node@v4
+      - uses: actions/setup-node@v4
         with:
           node-version: 22
           cache: pnpm
-
-      - name: Install dependencies
-        run: pnpm install --frozen-lockfile
-
-      - name: Run tests
+      - run: pnpm install --frozen-lockfile
+      - name: Run API tests
         id: tests
-        run: {{TEST_COMMAND}}
         continue-on-error: true
-
+        run: pnpm test:api
       - name: Generate Allure report
         if: always()
         run: pnpm allure:generate
-
-      - name: Save raw report as GitHub artifact
+      - name: Upload API report
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: allure-report-${{ github.run_number }}
+          name: allure-api
           path: allure-report
           if-no-files-found: error
 
-      - name: Checkout reports archive
+  ui-tests:
+    needs: detect-changes
+    if: needs.detect-changes.outputs.ui == 'true'
+    runs-on: ubuntu-latest
+    outputs:
+      outcome: ${{ steps.tests.outcome }}
+    steps:
+      - uses: actions/checkout@v6
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 11
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Run UI tests
+        id: tests
+        continue-on-error: true
+        run: pnpm test:ui
+      - name: Generate Allure report
         if: always()
+        run: pnpm allure:generate
+      - name: Upload UI report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: allure-ui
+          path: allure-report
+          if-no-files-found: error
+
+  integration-tests:
+    needs: detect-changes
+    if: needs.detect-changes.outputs.integrations == 'true'
+    runs-on: ubuntu-latest
+    outputs:
+      outcome: ${{ steps.tests.outcome }}
+    steps:
+      - uses: actions/checkout@v6
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 11
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Run integration tests
+        id: tests
+        continue-on-error: true
+        run: pnpm test:integrations
+      - name: Generate Allure report
+        if: always()
+        run: pnpm allure:generate
+      - name: Upload integration report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: allure-integrations
+          path: allure-report
+          if-no-files-found: error
+
+  performance-tests:
+    needs: detect-changes
+    if: needs.detect-changes.outputs.performance == 'true'
+    runs-on: ubuntu-latest
+    outputs:
+      outcome: ${{ steps.tests.outcome }}
+    steps:
+      - uses: actions/checkout@v6
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 11
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - uses: grafana/setup-k6-action@v1
+      - run: pnpm install --frozen-lockfile
+      - name: Run k6 scenario
+        id: tests
+        continue-on-error: true
+        env:
+          API_BASE_URL: ${{ secrets.API_BASE_URL }}
+          AUTH_PASSWORD: ${{ secrets.K6_AUTH_PASSWORD }}
+          RUN_ID: ${{ github.run_number }}
+          SCENARIO: ${{ inputs.performance_scenario || 'public' }}
+        run: |
+          pnpm perf:routes
+          mkdir -p "performance-results/${SCENARIO}"
+          case "$SCENARIO" in
+            public|mixed) script="performance/k6/${SCENARIO}.js" ;;
+            auth) script="performance/k6/authenticated.js" ;;
+            *) echo "Unsupported k6 scenario: $SCENARIO" >&2; exit 1 ;;
+          esac
+          K6_REPORT_DIR="performance-results/${SCENARIO}" k6 run "$script"
+      - name: Upload performance report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: performance-${{ inputs.performance_scenario || 'public' }}
+          path: performance-results/${{ inputs.performance_scenario || 'public' }}
+          if-no-files-found: error
+
+  publish-reports:
+    needs: [detect-changes, api-tests, ui-tests, integration-tests, performance-tests]
+    if: >-
+      always() && github.event_name != 'pull_request' &&
+      (needs.api-tests.outputs.outcome != '' || needs.ui-tests.outputs.outcome != '' ||
+       needs.integration-tests.outputs.outcome != '' || needs.performance-tests.outputs.outcome != '')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 11
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Checkout reports archive
         uses: actions/checkout@v6
         with:
           ref: reports
           path: reports-site
-
-      - name: Build report portal
-        if: always()
+      - name: Download API report
+        if: needs.api-tests.outputs.outcome != ''
+        uses: actions/download-artifact@v5
+        with:
+          name: allure-api
+          path: artifacts/api
+      - name: Download UI report
+        if: needs.ui-tests.outputs.outcome != ''
+        uses: actions/download-artifact@v5
+        with:
+          name: allure-ui
+          path: artifacts/ui
+      - name: Download integration report
+        if: needs.integration-tests.outputs.outcome != ''
+        uses: actions/download-artifact@v5
+        with:
+          name: allure-integrations
+          path: artifacts/integrations
+      - name: Download performance report
+        if: needs.performance-tests.outputs.outcome != ''
+        uses: actions/download-artifact@v5
+        with:
+          name: performance-${{ inputs.performance_scenario || 'public' }}
+          path: artifacts/performance
+      - name: Publish functional reports
         env:
           RUN_ID: ${{ github.run_number }}
-          TEST_STATUS: ${{ steps.tests.outcome }}
-          REPORT_TYPE: {{REPORT_TYPE}}
-          REPORT_ENVIRONMENT: {{ENVIRONMENT}}
-        run: pnpm exec qa-dashboard build
-
+          API_OUTCOME: ${{ needs.api-tests.outputs.outcome }}
+          UI_OUTCOME: ${{ needs.ui-tests.outputs.outcome }}
+          INTEGRATIONS_OUTCOME: ${{ needs.integration-tests.outputs.outcome }}
+          REPORT_ENVIRONMENT: ${{ inputs.environment || 'Staging' }}
+        run: |
+          if [ -n "$API_OUTCOME" ]; then pnpm exec qa-dashboard build --source=artifacts/api --type=api --environment="$REPORT_ENVIRONMENT" --run-id="$RUN_ID" --status="$API_OUTCOME"; fi
+          if [ -n "$UI_OUTCOME" ]; then pnpm exec qa-dashboard build --source=artifacts/ui --type=ui --environment="$REPORT_ENVIRONMENT" --run-id="$RUN_ID" --status="$UI_OUTCOME"; fi
+          if [ -n "$INTEGRATIONS_OUTCOME" ]; then pnpm exec qa-dashboard build --source=artifacts/integrations --type=integrations --environment="$REPORT_ENVIRONMENT" --run-id="$RUN_ID" --status="$INTEGRATIONS_OUTCOME"; fi
+      - name: Publish performance report
+        if: needs.performance-tests.outputs.outcome != ''
+        env:
+          RUN_ID: ${{ github.run_number }}
+          TEST_STATUS: ${{ needs.performance-tests.outputs.outcome }}
+          REPORT_ENVIRONMENT: ${{ inputs.environment || 'Staging' }}
+          SCENARIO: ${{ inputs.performance_scenario || 'public' }}
+        run: pnpm exec qa-dashboard publish-performance --summary=artifacts/performance/summary.json --html=artifacts/performance/report.html --scenario="$SCENARIO" --environment="$REPORT_ENVIRONMENT" --run-id="$RUN_ID" --status="$TEST_STATUS"
       - name: Commit report archive
-        if: always()
         run: |
           git -C reports-site config user.name "github-actions[bot]"
           git -C reports-site config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git -C reports-site add site
           git -C reports-site diff --cached --quiet || {
-            git -C reports-site commit -m "Archive Allure report #${{ github.run_number }}"
+            git -C reports-site commit -m "Archive QA reports #${{ github.run_number }}"
             git -C reports-site push origin reports
           }
-
       - name: Create Worker secrets file
-        if: always()
         env:
           REPORTS_USERNAME: ${{ secrets.REPORTS_USERNAME }}
           REPORTS_PASSWORD: ${{ secrets.REPORTS_PASSWORD }}
           REPORTS_SESSION_SECRET: ${{ secrets.REPORTS_SESSION_SECRET }}
         run: pnpm exec qa-dashboard create-secrets .report-secrets.json
-
       - name: Deploy report portal
-        if: always()
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
         run: npm exec --yes --package=wrangler@4 -- wrangler deploy --config=qa-dashboard.wrangler.jsonc --secrets-file=.report-secrets.json
-
       - name: Notify Slack about new failures
-        if: always()
         env:
           SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
           REPORTS_PORTAL_URL: ${{ secrets.REPORTS_PORTAL_URL }}
         run: pnpm exec qa-dashboard notify-slack reports-site/site/dashboard-data/reports.json
 
-      - name: Mark run as failed if tests failed
-        if: always() && steps.tests.outcome != 'success'
-        run: exit 1
+  verify-results:
+    needs: [api-tests, ui-tests, integration-tests, performance-tests, publish-reports]
+    if: always()
+    runs-on: ubuntu-latest
+    env:
+      API_OUTCOME: ${{ needs.api-tests.outputs.outcome }}
+      UI_OUTCOME: ${{ needs.ui-tests.outputs.outcome }}
+      INTEGRATIONS_OUTCOME: ${{ needs.integration-tests.outputs.outcome }}
+      PERFORMANCE_OUTCOME: ${{ needs.performance-tests.outputs.outcome }}
+    steps:
+      - name: Fail only after reports were preserved
+        run: |
+          for outcome in "$API_OUTCOME" "$UI_OUTCOME" "$INTEGRATIONS_OUTCOME" "$PERFORMANCE_OUTCOME"; do
+            if [ "$outcome" = "failure" ]; then
+              echo "At least one selected suite failed. Reports were preserved before this final status."
+              exit 1
+            fi
+          done

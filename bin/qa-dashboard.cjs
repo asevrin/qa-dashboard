@@ -5,6 +5,7 @@ const { CONFIG_FILE, defaults } = require("../lib/config.cjs");
 const { buildReportSite } = require("../lib/build-report-site.cjs");
 const { createReportSecrets } = require("../lib/create-report-secrets.cjs");
 const { notifySlack } = require("../lib/notify-slack.cjs");
+const { publishPerformance } = require("../lib/publish-performance.cjs");
 
 const packageRoot = path.resolve(__dirname, "..");
 const rootDirectory = process.cwd();
@@ -18,6 +19,29 @@ function option(name, fallback) {
 
 function hasFlag(name) {
   return argumentsList.includes(`--${name}`);
+}
+
+function buildOptions() {
+  return {
+    source: option("source"),
+    type: option("type"),
+    environment: option("environment"),
+    name: option("name"),
+    runId: option("run-id"),
+    status: option("status"),
+  };
+}
+
+function performanceOptions() {
+  return {
+    summary: option("summary"),
+    html: option("html"),
+    scenario: option("scenario"),
+    environment: option("environment"),
+    runId: option("run-id"),
+    status: option("status"),
+    name: option("name"),
+  };
 }
 
 function replaceTokens(template, tokens) {
@@ -70,7 +94,8 @@ function init() {
 function help() {
   console.log(`Usage:
   qa-dashboard init [--project-name=NAME] [--worker-name=NAME] [--test-command='pnpm test:api'] [--report-type=api] [--environment=Staging] [--force]
-  qa-dashboard build
+  qa-dashboard build [--source=PATH] [--type=api|ui|integrations] [--environment=NAME] [--run-id=ID] [--status=success|failure] [--name=REPORT_NAME]
+  qa-dashboard publish-performance --summary=PATH --scenario=public|auth|mixed [--html=PATH] [--environment=NAME] [--run-id=ID] [--status=success|failure]
   qa-dashboard create-secrets [output-file]
   qa-dashboard notify-slack <reports.json>
 
@@ -81,8 +106,12 @@ async function main() {
   if (!command || command === "help" || command === "--help" || command === "-h") return help();
   if (command === "init") return init();
   if (command === "build") {
-    const result = buildReportSite({ rootDirectory });
+    const result = buildReportSite({ rootDirectory, options: buildOptions() });
     return console.log(`Published ${result.reportId}; retained ${result.retention.kept} reports.`);
+  }
+  if (command === "publish-performance") {
+    const run = publishPerformance({ rootDirectory, options: performanceOptions() });
+    return console.log(`Published performance run ${run.id}; gate: ${run.gate}.`);
   }
   if (command === "create-secrets") return createReportSecrets(argumentsList[0] || ".report-secrets.json");
   if (command === "notify-slack") return notifySlack(argumentsList[0]);

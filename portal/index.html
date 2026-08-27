@@ -32,8 +32,8 @@
       <section class="hero">
         <div>
           <p class="hero-copy">
-            Browse API and UI test runs, review results, and open detailed
-            Allure reports.
+            Browse API, UI, and integration test runs, review results, and
+            open detailed Allure reports.
           </p>
         </div>
         <a class="latest-button" id="latest-button" href="./latest/"
@@ -82,6 +82,7 @@
           <button class="active" data-type="all" role="tab">All runs</button
           ><button data-type="api" role="tab">API</button
           ><button data-type="ui" role="tab">UI</button>
+          <button data-type="integrations" role="tab">Integrations</button>
         </div>
         <div class="filters">
           <label class="search"
@@ -107,6 +108,32 @@
         </div>
         <div class="run-grid" id="run-grid"></div>
         <nav class="pagination" id="pagination" aria-label="Report pages"></nav>
+      </section>
+
+      <section class="performance-section" id="performance-section">
+        <div class="runs-heading">
+          <div>
+            <p class="panel-kicker">Performance</p>
+            <h2>Load test runs</h2>
+          </div>
+          <span class="result-count" id="performance-result-count"></span>
+        </div>
+        <div class="performance-summary" id="performance-summary"></div>
+        <div class="filters performance-filters">
+          <select id="performance-scenario-filter" aria-label="Filter by k6 scenario">
+            <option value="all">All scenarios</option>
+          </select>
+          <select id="performance-environment-filter" aria-label="Filter performance by environment">
+            <option value="all">All environments</option>
+          </select>
+          <select id="performance-period-filter" aria-label="Filter performance by period">
+            <option value="all">All time</option>
+            <option value="7">Last 7 days</option>
+            <option value="30">Last 30 days</option>
+          </select>
+        </div>
+        <div class="performance-trends" id="performance-trends"></div>
+        <div class="run-grid performance-grid" id="performance-grid"></div>
       </section>
     </main>
     <template id="empty-template"

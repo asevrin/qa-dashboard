@@ -294,6 +294,81 @@ body {
 .runs-section {
   margin-top: 56px;
 }
+.performance-section {
+  margin-top: 56px;
+}
+.performance-summary,
+.performance-trends {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 13px;
+  margin-top: 20px;
+}
+.performance-kpi,
+.performance-trend {
+  min-height: 104px;
+  padding: 17px;
+  border: 1px solid var(--line);
+  border-radius: 13px;
+  background: var(--surface);
+  box-shadow: var(--shadow);
+}
+.performance-kpi span,
+.performance-trend span {
+  display: block;
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 750;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+.performance-kpi strong,
+.performance-trend strong {
+  display: block;
+  margin-top: 8px;
+  font-size: 23px;
+  letter-spacing: -0.045em;
+}
+.performance-trend {
+  position: relative;
+  min-height: 132px;
+}
+.performance-trend svg {
+  width: 100%;
+  height: 48px;
+  margin-top: 10px;
+  overflow: visible;
+}
+.performance-trend polyline {
+  fill: none;
+  stroke: var(--blue);
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 3;
+}
+.performance-trend small {
+  display: block;
+  margin-top: 12px;
+  color: var(--muted);
+  font-size: 11px;
+}
+.performance-filters {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+.badge.integrations {
+  background: #35d39e22;
+  color: var(--green);
+}
+.badge.performance {
+  background: #ffc76922;
+  color: var(--amber);
+}
+.performance-card:before {
+  background: var(--amber);
+}
+.performance-card.blocked:before {
+  background: var(--red);
+}
 .type-tabs {
   display: flex;
   gap: 4px;
@@ -497,6 +572,13 @@ select {
   .filters {
     grid-template-columns: 1fr 1fr;
   }
+  .performance-summary,
+  .performance-trends {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  .performance-filters {
+    grid-template-columns: 1fr 1fr;
+  }
   .search {
     grid-column: 1/-1;
   }
@@ -518,7 +600,9 @@ select {
     justify-content: space-between;
   }
   .kpi-grid,
-  .run-grid {
+  .run-grid,
+  .performance-summary,
+  .performance-trends {
     grid-template-columns: 1fr;
   }
   .filters {
@@ -526,6 +610,9 @@ select {
   }
   .search {
     grid-column: auto;
+  }
+  .performance-filters {
+    grid-template-columns: 1fr;
   }
   .panel {
     padding: 18px;

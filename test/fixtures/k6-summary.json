@@ -1,0 +1,26 @@
+{
+  "metrics": {
+    "http_req_duration": {
+      "values": {
+        "p(95)": 420,
+        "p(99)": 810
+      }
+    },
+    "http_req_failed": {
+      "values": {
+        "rate": 0.002
+      }
+    },
+    "http_reqs": {
+      "values": {
+        "count": 1200,
+        "rate": 20
+      }
+    },
+    "vus_max": {
+      "values": {
+        "max": 10
+      }
+    }
+  }
+}
