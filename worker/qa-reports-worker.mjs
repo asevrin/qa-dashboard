@@ -145,6 +145,9 @@ export default {
         { "Cache-Control": "no-store" },
       );
 
+    const tmsResponse = await handleTmsRequest(request, env, url);
+    if (tmsResponse) return tmsResponse;
+
     const response = await env.ASSETS.fetch(request);
     const headers = new Headers(response.headers);
     headers.set("Cache-Control", "private, no-store");
@@ -155,3 +158,4 @@ export default {
     });
   },
 };
+import { handleTmsRequest } from "./tms-api.mjs";

@@ -1,0 +1,139 @@
+.defect-toolbar {
+  display: grid;
+  grid-template-columns: minmax(200px, 1fr) 150px 150px;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+.defect-list {
+  display: grid;
+  gap: 8px;
+}
+.defect-row {
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--surface);
+  box-shadow: var(--shadow);
+}
+.defect-row summary {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  align-items: start;
+  padding: 13px;
+  cursor: pointer;
+  list-style: none;
+}
+.defect-row summary::-webkit-details-marker {
+  display: none;
+}
+.defect-row[open] summary {
+  border-bottom: 1px solid var(--line);
+}
+.defect-main {
+  min-width: 0;
+}
+.defect-heading,
+.defect-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+}
+.defect-number {
+  color: var(--blue);
+  font-size: 12px;
+  font-weight: 850;
+}
+.severity,
+.status {
+  padding: 3px 7px;
+  border-radius: 999px;
+  background: var(--surface-2);
+  font-size: 10px;
+  font-weight: 850;
+  text-transform: uppercase;
+}
+.severity.critical,
+.severity.high {
+  color: var(--red);
+}
+.severity.medium {
+  color: var(--amber);
+}
+.severity.low {
+  color: var(--blue);
+}
+.status.open {
+  color: var(--red);
+}
+.status.in_progress {
+  color: var(--amber);
+}
+.status.resolved {
+  color: var(--green);
+}
+.status.wont_fix {
+  color: var(--muted);
+}
+.defect-row h2 {
+  margin: 5px 0 0;
+  font-size: 15px;
+}
+.defect-row p,
+.defect-context {
+  margin: 4px 0 0;
+  color: var(--muted);
+  font-size: 12px;
+}
+.disclosure {
+  color: var(--muted);
+  font-size: 17px;
+  line-height: 15px;
+  transition: transform 0.15s ease;
+}
+.defect-row[open] .disclosure {
+  transform: rotate(180deg);
+}
+.defect-details {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+  padding: 13px;
+}
+.defect-details section {
+  min-width: 0;
+}
+.defect-details h3 {
+  margin: 0 0 5px;
+  color: var(--muted);
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+.defect-details p {
+  margin: 0;
+  white-space: pre-wrap;
+}
+.defect-actions {
+  justify-content: flex-end;
+  padding: 0 13px 13px;
+}
+.defect-actions .secondary-button {
+  font-family: Inter, ui-sans-serif, system-ui, sans-serif;
+  font-size: 13px;
+  line-height: 1.2;
+}
+@media (max-width: 700px) {
+  .defect-toolbar {
+    grid-template-columns: 1fr 1fr;
+  }
+  .defect-toolbar .search {
+    grid-column: 1/-1;
+  }
+  .defect-details {
+    grid-template-columns: 1fr;
+  }
+  .defect-actions {
+    justify-content: start;
+  }
+}

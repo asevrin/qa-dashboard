@@ -1,0 +1,231 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="color-scheme" content="dark light" />
+    <link rel="icon" type="image/svg+xml" href="/tms/favicon.svg" />
+    <title>Manual TMS</title>
+    <link rel="stylesheet" href="./app.css" />
+    <link rel="stylesheet" href="./nav.css" />
+    <link rel="stylesheet" href="./steps.css" />
+  </head>
+  <body>
+    <main class="app-shell">
+      <header class="topbar">
+        <a class="brand" href="/" aria-label="QA Dashboard home"
+          ><span class="brand-mark">T</span><span>Test management</span></a
+        >
+        <nav class="header-actions" aria-label="TMS actions">
+          <button class="theme-toggle" id="theme-toggle" type="button">
+            <span aria-hidden="true">◐</span
+            ><span id="theme-label">Dark</span></button
+          ><a class="header-link" href="/">Automation reports</a
+          ><a class="header-link" href="/logout">Log out</a>
+        </nav>
+      </header>
+      <div class="tms-layout">
+        <nav class="section-nav" aria-label="Manual TMS sections">
+          <span class="nav-label">Manual TMS</span
+          ><a class="active" href="./">Test repository</a
+          ><a href="./plans/">Test plans</a><a href="./runs/">Test runs</a>
+        </nav>
+        <div class="tms-content">
+          <section class="page-heading">
+            <div>
+              <h1>Test repository</h1>
+              <p>
+                Organize test cases, then build repeatable test plans and runs.
+              </p>
+            </div>
+            <div class="primary-actions">
+              <button class="secondary-button" id="new-suite" type="button">
+                New suite</button
+              ><button class="primary-button" id="new-case" type="button">
+                New test case
+              </button>
+            </div>
+          </section>
+          <section class="workspace">
+            <aside class="suite-panel">
+              <div class="panel-title">
+                <span>Suites</span><span id="suite-count"></span>
+              </div>
+              <nav id="suite-tree" aria-label="Test suites"></nav>
+            </aside>
+            <section class="repository-panel">
+              <div class="repository-toolbar">
+                <label class="search"
+                  ><span aria-hidden="true">⌕</span
+                  ><input
+                    id="search"
+                    type="search"
+                    placeholder="Search case ID, title, tag…" /></label
+                ><select
+                  id="scope-filter"
+                  aria-label="Filter by execution scope"
+                >
+                  <option value="all">All scopes</option>
+                  <option value="smoke">Smoke</option>
+                  <option value="core">Core</option>
+                  <option value="full">Full</option></select
+                ><select id="priority-filter" aria-label="Filter by priority">
+                  <option value="all">All priorities</option>
+                  <option value="critical">Critical</option>
+                  <option value="high">High</option>
+                  <option value="medium">Medium</option>
+                  <option value="low">Low</option>
+                </select>
+              </div>
+              <div class="case-summary" id="case-summary"></div>
+              <div class="case-list" id="case-list"></div>
+            </section>
+          </section>
+        </div>
+      </div>
+    </main>
+    <dialog id="suite-dialog">
+      <form id="suite-form">
+        <div class="dialog-heading">
+          <h2>New suite</h2>
+          <button
+            class="icon-button"
+            data-close
+            type="button"
+            aria-label="Close"
+          >
+            ×
+          </button>
+        </div>
+        <label
+          >Suite name<input id="suite-name" required maxlength="500" /></label
+        ><label
+          >Parent suite<select id="suite-parent">
+            <option value="">No parent (top level)</option>
+          </select></label
+        ><label
+          >Description<textarea
+            id="suite-description"
+            rows="3"
+            maxlength="20000"
+          ></textarea>
+        </label>
+        <p class="form-message" id="suite-message" aria-live="polite"></p>
+        <div class="dialog-actions">
+          <button class="secondary-button" data-close type="button">
+            Cancel</button
+          ><button class="primary-button" type="submit">Create suite</button>
+        </div>
+      </form>
+    </dialog>
+    <dialog id="case-dialog">
+      <form id="case-form">
+        <div class="dialog-heading">
+          <h2 id="case-dialog-title">New test case</h2>
+          <button
+            class="icon-button"
+            data-close
+            type="button"
+            aria-label="Close"
+          >
+            ×
+          </button>
+        </div>
+        <div class="form-grid">
+          <label
+            >Case ID<input
+              id="case-key"
+              placeholder="AUTH-001"
+              required
+              maxlength="80"
+              pattern="[A-Z][A-Z0-9_]*-[0-9]{1,8}" /></label
+          ><label>Suite<select id="case-suite" required></select></label
+          ><label class="full"
+            >Title<input id="case-title" required maxlength="500" /></label
+          ><label
+            >Priority<select id="case-priority">
+              <option value="critical">Critical</option>
+              <option value="high">High</option>
+              <option value="medium" selected>Medium</option>
+              <option value="low">Low</option>
+            </select></label
+          ><label
+            >Execution scope<select id="case-scope">
+              <option value="smoke">Smoke</option>
+              <option value="core" selected>Core</option>
+              <option value="full">Full</option>
+            </select></label
+          ><label
+            >Preconditions<textarea
+              id="case-preconditions"
+              rows="2"
+              maxlength="20000"
+            ></textarea></label
+          ><label
+            >Case status<select id="case-status">
+              <option value="draft">Draft</option>
+              <option value="ready" selected>Ready</option>
+              <option value="archived">Archived</option>
+            </select></label
+          ><label
+            >Automation<select id="case-automation">
+              <option value="manual" selected>Manual</option>
+              <option value="to_be_automated">To be automated</option>
+              <option value="automated">Automated</option>
+            </select></label
+          ><label class="full"
+            >Expected result<textarea
+              id="case-expected"
+              rows="3"
+              maxlength="20000"
+            ></textarea></label
+          ><label class="full"
+            >Notes<textarea
+              id="case-notes"
+              rows="2"
+              maxlength="20000"
+            ></textarea></label
+          ><label class="full"
+            >Tags <span class="field-hint">comma-separated</span
+            ><input id="case-tags" placeholder="Login, Guest" maxlength="1000"
+          /></label>
+        </div>
+        <section class="case-steps">
+          <div class="case-steps-heading">
+            <div>
+              <h3>Steps</h3>
+              <p>Optional step-by-step instructions for manual execution.</p>
+            </div>
+            <button class="secondary-button" id="add-step" type="button">
+              Add step
+            </button>
+          </div>
+          <div id="steps-list"></div>
+        </section>
+        <p class="form-message" id="case-message" aria-live="polite"></p>
+        <div class="dialog-actions">
+          <button class="danger-button" id="case-delete" type="button" hidden>
+            Delete case</button
+          ><button class="primary-button" id="case-submit" type="submit">
+            Create case
+          </button
+          ><button class="secondary-button" data-close type="button">
+            Cancel
+          </button>
+        </div>
+      </form>
+    </dialog>
+    <template id="empty-state"
+      ><div class="empty-state">
+        <span>⌁</span>
+        <h2>No test cases yet</h2>
+        <p>
+          Create a suite and add your first test case, or import the existing
+          checklist in the next step.
+        </p>
+      </div></template
+    >
+    <script src="./shared.js" defer></script>
+    <script src="./app.js" defer></script>
+  </body>
+</html>

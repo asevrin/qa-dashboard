@@ -80,6 +80,32 @@ Your test target secrets (for example `API_BASE_URL`) remain specific to the tes
 
 The generated Worker configuration uses `workers.dev`. The first workflow deployment creates or updates the Worker. Do not put a Cloudflare Access policy in front of it when using this package’s built-in login form: Access would block visitors before they reach the form.
 
+## Manual TMS database
+
+Manual TMS is optional and uses a consumer-owned D1 database. Create the database in the consumer Cloudflare account, then add its real ID to `qa-dashboard.wrangler.jsonc`:
+
+```jsonc
+"d1_databases": [{
+  "binding": "QA_TMS_DB",
+  "database_name": "client-x-qa-tms",
+  "database_id": "<Cloudflare D1 database ID>",
+  "migrations_dir": "./node_modules/@asevrin/qa-dashboard/tms/migrations"
+}]
+```
+
+Apply the migrations before the first Worker deploy. The package ships the migrations under `tms/migrations`; without this binding the TMS API deliberately returns `503` instead of writing report data.
+
+### Local Manual TMS
+
+From this package repository, apply local migrations and start the Worker:
+
+```bash
+pnpm tms:db:local
+pnpm tms:dev
+```
+
+Open `http://localhost:8787/tms/`. The local D1 database is intentionally separate from any remote Cloudflare D1 database.
+
 ## Workflow adaptation
 
 The generated workflow has independent API, UI, integration and performance jobs. It uses path filters for functional test changes, provides manual suite/environment/scenario inputs, and keeps a nightly full functional regression plus a k6 smoke run.

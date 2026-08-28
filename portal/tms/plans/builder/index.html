@@ -1,0 +1,169 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <link rel="icon" type="image/svg+xml" href="/tms/favicon.svg" />
+    <meta name="color-scheme" content="dark light" />
+    <title>Plan builder · Manual TMS</title>
+    <link rel="stylesheet" href="../../app.css" />
+    <link rel="stylesheet" href="../../nav.css" />
+    <link rel="stylesheet" href="../plans.css" />
+    <link rel="stylesheet" href="./builder.css" />
+  </head>
+  <body>
+    <main class="app-shell">
+      <header class="topbar">
+        <a class="brand" href="/" aria-label="QA Dashboard home"
+          ><span class="brand-mark">T</span><span>Test management</span></a
+        >
+        <nav class="header-actions" aria-label="TMS actions">
+          <button class="theme-toggle" id="theme-toggle" type="button">
+            <span aria-hidden="true">◐</span
+            ><span id="theme-label">Dark</span></button
+          ><a class="header-link" href="/">Automation reports</a
+          ><a class="header-link" href="/logout">Log out</a>
+        </nav>
+      </header>
+      <div class="tms-layout">
+        <nav class="section-nav" aria-label="Manual TMS sections">
+          <span class="nav-label">Manual TMS</span
+          ><a href="../../">Test repository</a
+          ><a class="active" href="../">Test plans</a
+          ><a href="../../runs/">Test runs</a
+          ><a href="../../defects/">Defects</a>
+        </nav>
+        <div class="tms-content">
+          <section class="page-heading builder-heading">
+            <div>
+              <a class="back-link" href="../">← Test plans</a>
+              <h1 id="plan-name-heading">Plan builder</h1>
+              <p id="plan-description-heading"></p>
+            </div>
+            <div class="primary-actions">
+              <button class="secondary-button" id="edit-details" type="button">
+                Plan details</button
+              ><button class="primary-button" id="save-plan" type="button">
+                Save changes
+              </button>
+            </div>
+          </section>
+          <section class="builder-layout">
+            <aside class="builder-filter-panel">
+              <div class="panel-title">
+                <span>Filter cases</span
+                ><button class="text-button" id="clear-filters" type="button">
+                  Clear
+                </button>
+              </div>
+              <label class="builder-search"
+                ><input
+                  id="case-search"
+                  type="search"
+                  placeholder="Search case ID or title…"
+              /></label>
+              <div class="filter-group">
+                <span>Scopes</span
+                ><label><input data-scope="smoke" type="checkbox" />Smoke</label
+                ><label><input data-scope="core" type="checkbox" />Core</label
+                ><label><input data-scope="full" type="checkbox" />Full</label>
+              </div>
+              <div class="filter-group">
+                <span>Priority</span
+                ><label
+                  ><input
+                    data-priority="critical"
+                    type="checkbox"
+                  />Critical</label
+                ><label
+                  ><input data-priority="high" type="checkbox" />High</label
+                ><label
+                  ><input data-priority="medium" type="checkbox" />Medium</label
+                ><label><input data-priority="low" type="checkbox" />Low</label>
+              </div>
+              <div class="filter-group suites-filter">
+                <span>Suites</span>
+                <div id="suite-filters"></div>
+              </div>
+            </aside>
+            <section class="builder-case-panel">
+              <div class="selection-toolbar">
+                <div>
+                  <strong id="selected-total">0 selected</strong
+                  ><span id="case-range"></span>
+                </div>
+                <div class="toolbar-actions">
+                  <button
+                    class="secondary-button"
+                    id="select-filtered"
+                    type="button"
+                  >
+                    Select filtered</button
+                  ><button
+                    class="text-button"
+                    id="clear-selection"
+                    type="button"
+                  >
+                    Clear selection
+                  </button>
+                </div>
+              </div>
+              <div class="builder-case-list" id="builder-case-list"></div>
+              <div class="pagination" id="pagination"></div>
+            </section>
+          </section>
+          <div class="save-bar">
+            <span id="save-message" aria-live="polite"></span
+            ><strong id="save-count">0 cases selected</strong
+            ><button class="primary-button" id="save-plan-bottom" type="button">
+              Save changes
+            </button>
+          </div>
+        </div>
+      </div>
+    </main>
+    <dialog id="details-dialog">
+      <form id="details-form">
+        <div class="dialog-heading">
+          <h2>Plan details</h2>
+          <button
+            class="icon-button"
+            data-close
+            type="button"
+            aria-label="Close"
+          >
+            ×
+          </button>
+        </div>
+        <div class="form-grid">
+          <label class="full"
+            >Plan name<input
+              id="details-name"
+              required
+              maxlength="500" /></label
+          ><label class="full"
+            >Description<textarea
+              id="details-description"
+              rows="3"
+              maxlength="20000"
+            ></textarea></label
+          ><label
+            >Status<select id="details-status">
+              <option value="active">Active</option>
+              <option value="draft">Draft</option>
+              <option value="archived">Archived</option>
+            </select></label
+          >
+        </div>
+        <p class="form-message" id="details-message" aria-live="polite"></p>
+        <div class="dialog-actions">
+          <button class="secondary-button" data-close type="button">
+            Cancel</button
+          ><button class="primary-button" type="submit">Save details</button>
+        </div>
+      </form>
+    </dialog>
+    <script src="../../shared.js" defer></script>
+    <script src="./app.js" defer></script>
+  </body>
+</html>

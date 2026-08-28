@@ -1,0 +1,234 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <link rel="icon" type="image/svg+xml" href="/tms/favicon.svg" />
+    <meta name="color-scheme" content="dark light" />
+    <title>Test plans · Manual TMS</title>
+    <link rel="stylesheet" href="../app.css" />
+    <link rel="stylesheet" href="../nav.css" />
+    <link rel="stylesheet" href="./plans.css" />
+    <style>
+      .plans-card-list {
+        display: grid;
+        gap: 8px;
+      }
+      .plan-card {
+        display: flex;
+        justify-content: space-between;
+        gap: 16px;
+        align-items: center;
+        padding: 14px;
+        border: 1px solid var(--line);
+        border-radius: 10px;
+        background: var(--surface);
+        box-shadow: var(--shadow);
+      }
+      .plan-card > div {
+        min-width: 0;
+      }
+      .plan-card-heading {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        align-items: center;
+      }
+      .plan-card-heading > span:last-child {
+        color: var(--muted);
+        font-size: 12px;
+        font-weight: 700;
+      }
+      .plan-card h2 {
+        margin: 4px 0 0;
+        font-size: 16px;
+      }
+      .plan-card p {
+        margin: 3px 0 0;
+        color: var(--muted);
+        font-size: 13px;
+      }
+      .plan-card .secondary-button {
+        flex: 0 0 auto;
+        white-space: nowrap;
+      }
+      .plan-case-preview {
+        margin-top: 10px;
+      }
+      .plan-case-preview summary {
+        color: var(--blue);
+        cursor: pointer;
+        font-size: 12px;
+        font-weight: 800;
+      }
+      .plan-case-preview ol {
+        display: grid;
+        gap: 5px;
+        max-height: 220px;
+        margin: 8px 0 0;
+        padding-left: 24px;
+        overflow: auto;
+      }
+      .plan-case-preview li {
+        display: flex;
+        gap: 7px;
+        min-width: 0;
+        font-size: 12px;
+      }
+      .plan-case-preview strong {
+        flex: 0 0 auto;
+        color: var(--blue);
+      }
+      .plan-case-preview span {
+        overflow: hidden;
+        color: var(--muted);
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+      @media (max-width: 520px) {
+        .plan-card {
+          align-items: start;
+          flex-direction: column;
+        }
+      }
+    </style>
+    <style>
+      .plan-toolbar {
+        display: grid;
+        grid-template-columns: minmax(200px, 1fr) 150px;
+        gap: 8px;
+        margin-bottom: 12px;
+      }
+      @media (max-width: 520px) {
+        .plan-toolbar {
+          grid-template-columns: 1fr;
+        }
+      }
+    </style>
+    <style>
+      .plan-detail-panel .plan-edit {
+        display: inline-flex !important;
+        width: auto !important;
+        flex: 0 0 auto !important;
+        align-self: flex-start !important;
+        white-space: nowrap;
+      }
+    </style>
+  </head>
+  <body>
+    <main class="app-shell">
+      <header class="topbar">
+        <a class="brand" href="/" aria-label="QA Dashboard home"
+          ><span class="brand-mark">T</span><span>Test management</span></a
+        >
+        <nav class="header-actions" aria-label="TMS actions">
+          <button class="theme-toggle" id="theme-toggle" type="button">
+            <span aria-hidden="true">◐</span
+            ><span id="theme-label">Dark</span></button
+          ><a class="header-link" href="/">Automation reports</a
+          ><a class="header-link" href="/logout">Log out</a>
+        </nav>
+      </header>
+      <div class="tms-layout">
+        <nav class="section-nav" aria-label="Manual TMS sections">
+          <span class="nav-label">Manual TMS</span
+          ><a href="../">Test repository</a
+          ><a class="active" href="./">Test plans</a
+          ><a href="../runs/">Test runs</a><a href="../defects/">Defects</a>
+        </nav>
+        <div class="tms-content">
+          <section class="page-heading">
+            <div>
+              <h1>Test plans</h1>
+              <p>
+                Save repeatable case selections for smoke, regression, and
+                releases.
+              </p>
+            </div>
+            <button class="primary-button" id="new-plan" type="button">
+              New test plan
+            </button>
+          </section>
+          <section class="plan-toolbar">
+            <label class="search"
+              ><span aria-hidden="true">⌕</span
+              ><input
+                id="plan-search"
+                type="search"
+                placeholder="Search plans…" /></label
+            ><select id="plan-status-filter" aria-label="Filter by plan status">
+              <option value="all">All statuses</option>
+              <option value="active">Active</option>
+              <option value="draft">Draft</option>
+              <option value="archived">Archived</option>
+            </select>
+          </section>
+          <section class="plans-layout">
+            <aside class="plan-list-panel">
+              <div class="panel-title"><span>Plans</span></div>
+              <div id="plan-list"></div>
+            </aside>
+            <section class="plan-detail-panel" id="plan-detail"></section>
+          </section>
+        </div>
+      </div>
+    </main>
+    <dialog id="plan-dialog">
+      <form id="plan-form">
+        <div class="dialog-heading">
+          <h2>New test plan</h2>
+          <button
+            class="icon-button"
+            data-close
+            type="button"
+            aria-label="Close"
+          >
+            ×
+          </button>
+        </div>
+        <div class="form-grid">
+          <label class="full"
+            >Plan name<input
+              id="plan-name"
+              required
+              maxlength="500"
+              placeholder="Release smoke" /></label
+          ><label class="full"
+            >Description<textarea
+              id="plan-description"
+              rows="3"
+              maxlength="20000"
+              placeholder="What and when this plan covers"
+            ></textarea></label
+          ><label
+            >Plan status<select id="plan-status">
+              <option value="active" selected>Active</option>
+              <option value="draft">Draft</option>
+              <option value="archived">Archived</option>
+            </select></label
+          >
+        </div>
+        <p class="form-message" id="plan-message" aria-live="polite"></p>
+        <div class="dialog-actions">
+          <button class="secondary-button" data-close type="button">
+            Cancel</button
+          ><button class="primary-button" type="submit">
+            Create and select cases
+          </button>
+        </div>
+      </form>
+    </dialog>
+    <template id="empty-plans"
+      ><div class="empty-state">
+        <span>⌁</span>
+        <h2>No plans yet</h2>
+        <p>
+          Create a Smoke, Regression, or release plan from the current
+          repository.
+        </p>
+      </div></template
+    >
+    <script src="../shared.js" defer></script>
+    <script src="./app.js" defer></script>
+  </body>
+</html>

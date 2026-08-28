@@ -1,0 +1,21 @@
+.case-selection {
+  display: grid;
+  gap: 9px;
+  padding-top: 2px;
+}
+.case-selection-heading {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+}
+.case-selection-heading span {
+  font-size: 13px;
+  font-weight: 800;
+}
+.case-selection-heading strong {
+  color: var(--blue);
+  font-size: 12px;
+}
+.plan-case-search input {
+  width: 100%;
+}

@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <link rel="icon" type="image/svg+xml" href="/tms/favicon.svg" />
+    <title>Run summary · Manual TMS</title>
+    <link rel="stylesheet" href="../../app.css" />
+    <link rel="stylesheet" href="../../nav.css" />
+    <link rel="stylesheet" href="./summary.css" />
+  </head>
+  <body>
+    <main class="app-shell">
+      <header class="topbar">
+        <a class="brand" href="/"
+          ><span class="brand-mark">T</span><span>Test management</span></a
+        >
+        <nav class="header-actions">
+          <button class="theme-toggle" id="theme-toggle" type="button">
+            ◐ <span id="theme-label">Dark</span></button
+          ><a class="header-link" href="/">Automation reports</a
+          ><a class="header-link" href="/logout">Log out</a>
+        </nav>
+      </header>
+      <div class="tms-layout">
+        <nav class="section-nav">
+          <span class="nav-label">Manual TMS</span
+          ><a href="../../">Test repository</a
+          ><a href="../../plans/">Test plans</a
+          ><a class="active" href="../">Test runs</a
+          ><a href="../../defects/">Defects</a>
+        </nav>
+        <div class="tms-content">
+          <section class="page-heading summary-heading">
+            <div>
+              <a class="back-link" href="../">← Test runs</a>
+              <h1 id="run-name">Run summary</h1>
+              <p id="run-meta"></p>
+            </div>
+          </section>
+          <section class="summary-metrics" id="summary-metrics"></section>
+          <section class="summary-section">
+            <div class="summary-section-heading">
+              <div>
+                <h2>Problem cases</h2>
+                <p>Failed and blocked cases with their execution trace.</p>
+              </div>
+              <span id="problem-count"></span>
+            </div>
+            <div id="problem-cases"></div>
+          </section>
+        </div>
+      </div>
+    </main>
+    <script src="../../shared.js" defer></script>
+    <script src="./app.js" defer></script>
+  </body>
+</html>

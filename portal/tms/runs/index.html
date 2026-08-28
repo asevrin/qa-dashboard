@@ -1,0 +1,90 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <link rel="icon" type="image/svg+xml" href="/tms/favicon.svg" />
+    <title>Test runs · Manual TMS</title>
+    <link rel="stylesheet" href="../app.css" />
+    <link rel="stylesheet" href="../nav.css" />
+    <link rel="stylesheet" href="./runs.css" />
+  </head>
+  <body>
+    <main class="app-shell">
+      <header class="topbar">
+        <a class="brand" href="/"
+          ><span class="brand-mark">T</span><span>Test management</span></a
+        >
+        <nav class="header-actions">
+          <button class="theme-toggle" id="theme-toggle" type="button">
+            ◐ <span id="theme-label">Dark</span></button
+          ><a class="header-link" href="/">Automation reports</a
+          ><a class="header-link" href="/logout">Log out</a>
+        </nav>
+      </header>
+      <div class="tms-layout">
+        <nav class="section-nav">
+          <span class="nav-label">Manual TMS</span
+          ><a href="../">Test repository</a><a href="../plans/">Test plans</a
+          ><a class="active" href="./">Test runs</a
+          ><a href="../defects/">Defects</a>
+        </nav>
+        <div class="tms-content">
+          <section class="page-heading">
+            <div>
+              <h1>Test runs</h1>
+              <p>Execute a plan and keep the result history.</p>
+            </div>
+            <button class="primary-button" id="new-run" type="button">
+              New test run
+            </button>
+          </section>
+          <section class="runs-panel" id="runs-list"></section>
+        </div>
+      </div>
+    </main>
+    <dialog id="run-dialog">
+      <form id="run-form">
+        <div class="dialog-heading">
+          <h2>New test run</h2>
+          <button class="icon-button" data-close type="button">×</button>
+        </div>
+        <div class="form-grid">
+          <label class="full"
+            >Run name<input
+              id="run-name"
+              required
+              maxlength="500"
+              placeholder="Release smoke" /></label
+          ><label class="full"
+            >Test plan<select id="run-plan" required></select></label
+          ><label
+            >Environment<input
+              id="run-environment"
+              required
+              maxlength="200"
+              placeholder="Staging" /></label
+          ><label
+            >Build / release<input
+              id="run-build"
+              maxlength="500"
+              placeholder="v1.2.3" /></label
+          ><label class="full"
+            >Executor<input
+              id="run-executor"
+              maxlength="200"
+              placeholder="QA name"
+          /></label>
+        </div>
+        <p class="form-message" id="run-message"></p>
+        <div class="dialog-actions">
+          <button class="secondary-button" data-close type="button">
+            Cancel</button
+          ><button class="primary-button" type="submit">Create run</button>
+        </div>
+      </form>
+    </dialog>
+    <script src="../shared.js" defer></script>
+    <script src="./app.js" defer></script>
+  </body>
+</html>

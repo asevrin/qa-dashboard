@@ -1,0 +1,18 @@
+{
+  "name": "qa-dashboard-tms-local",
+  "main": "../../worker/qa-reports-worker.mjs",
+  "compatibility_date": "2026-08-27",
+  "assets": {
+    "directory": "../../portal",
+    "binding": "ASSETS",
+    "run_worker_first": true
+  },
+  "d1_databases": [
+    {
+      "binding": "QA_TMS_DB",
+      "database_name": "qa-dashboard-tms-local",
+      "database_id": "local",
+      "migrations_dir": "../migrations"
+    }
+  ]
+}

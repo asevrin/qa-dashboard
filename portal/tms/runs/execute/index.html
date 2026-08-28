@@ -1,0 +1,166 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <link rel="icon" type="image/svg+xml" href="/tms/favicon.svg" />
+    <title>Execute run · Manual TMS</title>
+    <link rel="stylesheet" href="../../app.css" />
+    <link rel="stylesheet" href="../../nav.css" />
+    <link rel="stylesheet" href="./execute.css" />
+  </head>
+  <body>
+    <main class="app-shell">
+      <header class="topbar">
+        <a class="brand" href="/"
+          ><span class="brand-mark">T</span><span>Test management</span></a
+        >
+        <nav class="header-actions">
+          <button class="theme-toggle" id="theme-toggle" type="button">
+            ◐ <span id="theme-label">Dark</span>
+          </button>
+          <a class="header-link" href="/">Automation reports</a
+          ><a class="header-link" href="/logout">Log out</a>
+        </nav>
+      </header>
+      <div class="tms-layout">
+        <nav class="section-nav">
+          <span class="nav-label">Manual TMS</span
+          ><a href="../../">Test repository</a
+          ><a href="../../plans/">Test plans</a
+          ><a class="active" href="../">Test runs</a
+          ><a href="../../defects/">Defects</a>
+        </nav>
+        <div class="tms-content">
+          <section class="page-heading run-heading">
+            <div>
+              <a class="back-link" href="../">← Test runs</a>
+              <h1 id="run-name">Test run</h1>
+              <p id="run-meta"></p>
+            </div>
+            <div class="run-actions">
+              <button class="secondary-button" id="abort-run" type="button">
+                Abort run</button
+              ><button class="secondary-button" id="complete-run" type="button">
+                Complete run
+              </button>
+            </div>
+          </section>
+          <section class="execution-layout">
+            <aside class="case-navigator">
+              <div class="navigator-head">
+                <strong id="progress">0/0 complete</strong
+                ><select id="result-filter">
+                  <option value="all">All cases</option>
+                  <option value="pending">Pending</option>
+                  <option value="passed">Passed</option>
+                  <option value="failed">Failed</option>
+                  <option value="blocked">Blocked</option>
+                  <option value="skipped">Skipped</option>
+                </select>
+              </div>
+              <div id="run-case-nav"></div>
+            </aside>
+            <section class="execution-case" id="execution-case"></section>
+          </section>
+        </div>
+      </div>
+    </main>
+    <dialog class="problem-dialog" id="problem-dialog">
+      <div>
+        <h2 id="problem-dialog-title">Case marked failed</h2>
+        <p>
+          Add supporting details now, or continue with the next pending case.
+        </p>
+        <div class="problem-actions">
+          <button class="secondary-button" id="problem-evidence" type="button">
+            Add evidence</button
+          ><button class="secondary-button" id="problem-defect" type="button">
+            Create defect</button
+          ><button class="primary-button" id="problem-continue" type="button">
+            Continue to next case
+          </button>
+        </div>
+      </div>
+    </dialog>
+    <dialog id="evidence-dialog">
+      <form id="evidence-form">
+        <div class="dialog-heading">
+          <h2>Add evidence</h2>
+          <button class="icon-button" data-close type="button">×</button>
+        </div>
+        <label
+          >Label<input
+            id="evidence-label"
+            required
+            maxlength="500"
+            placeholder="Screenshot" /></label
+        ><label
+          >Google Drive URL<input
+            id="evidence-url"
+            required
+            type="url"
+            maxlength="2000"
+        /></label>
+        <p class="form-message" id="evidence-message"></p>
+        <div class="dialog-actions">
+          <button class="secondary-button" data-close type="button">
+            Cancel</button
+          ><button class="primary-button">Add link</button>
+        </div>
+      </form>
+    </dialog>
+    <dialog id="defect-dialog">
+      <form id="defect-form">
+        <div class="dialog-heading">
+          <h2>Create defect</h2>
+          <button class="icon-button" data-close type="button">×</button>
+        </div>
+        <label>Title<input id="defect-title" required maxlength="500" /></label
+        ><label
+          >Severity<select id="defect-severity">
+            <option>critical</option>
+            <option>high</option>
+            <option selected>medium</option>
+            <option>low</option>
+          </select></label
+        ><label
+          >Steps to reproduce<textarea
+            id="defect-steps"
+            rows="5"
+          ></textarea></label
+        ><label>Actual result<textarea id="defect-actual"></textarea></label
+        ><label
+          >Expected result<textarea id="defect-expected"></textarea>
+        </label>
+        <p class="form-message" id="defect-message"></p>
+        <div class="dialog-actions">
+          <button class="secondary-button" data-close type="button">
+            Cancel</button
+          ><button class="primary-button">Create defect</button>
+        </div>
+      </form>
+    </dialog>
+    <dialog id="abort-dialog">
+      <form method="dialog">
+        <div class="dialog-heading">
+          <h2>Abort test run?</h2>
+          <button class="icon-button" data-close type="button">×</button>
+        </div>
+        <p>
+          The run will become read-only. Existing results, evidence, and defects
+          will be preserved.
+        </p>
+        <div class="dialog-actions">
+          <button class="secondary-button" data-close type="button">
+            Cancel</button
+          ><button class="primary-button" id="confirm-abort" type="button">
+            Abort run
+          </button>
+        </div>
+      </form>
+    </dialog>
+    <script src="../../shared.js" defer></script>
+    <script src="./app.js" defer></script>
+  </body>
+</html>

@@ -1,0 +1,31 @@
+.bulk-select {
+  display: grid;
+  grid-template-columns: auto minmax(130px, 1fr) minmax(130px, 1fr) auto;
+  gap: 8px;
+  align-items: center;
+}
+.bulk-select .secondary-button {
+  justify-content: center;
+  white-space: nowrap;
+}
+.text-button {
+  border: 0;
+  background: transparent;
+  color: var(--muted);
+  cursor: pointer;
+  font: 750 13px inherit;
+}
+.text-button:hover {
+  color: var(--red);
+}
+@media (max-width: 520px) {
+  .bulk-select {
+    grid-template-columns: 1fr 1fr;
+  }
+  .bulk-select .secondary-button {
+    grid-column: 1/-1;
+  }
+  .text-button {
+    justify-self: end;
+  }
+}

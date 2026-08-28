@@ -12,11 +12,17 @@
     "lib",
     "portal",
     "templates",
+    "tms",
     "worker"
   ],
   "scripts": {
     "test": "node --test test/*.test.cjs",
-    "check": "node --check bin/qa-dashboard.cjs && node --check lib/build-report-site.cjs && node --check lib/publish-performance.cjs && node --check lib/performance-domain.cjs && node --check portal/app.js && node --check worker/qa-reports-worker.mjs"
+    "check": "node --check bin/qa-dashboard.cjs && node --check lib/build-report-site.cjs && node --check lib/publish-performance.cjs && node --check lib/performance-domain.cjs && node --check portal/app.js && node --check worker/qa-reports-worker.mjs && node --check worker/tms-api.mjs",
+    "tms:db:local": "wrangler d1 migrations apply qa-dashboard-tms-local --local --config=tms/dev/wrangler.jsonc",
+    "tms:dev": "wrangler dev --local --config=tms/dev/wrangler.jsonc"
+  },
+  "devDependencies": {
+    "wrangler": "4.127.0"
   },
   "engines": {
     "node": ">=20"
