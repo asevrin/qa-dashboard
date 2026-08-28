@@ -134,47 +134,9 @@ Add a Performance section to the dashboard with:
 
 Performance data must be modelled separately from Allure test cases. It is not a failed/passed test suite.
 
-## 7. Start test runs from the dashboard
+## 7. Dashboard-triggered test runs — out of scope
 
-Add a protected **Run tests** control to the dashboard. Available choices:
-
-- API;
-- UI;
-- API + UI;
-- Performance;
-- optional environment selector;
-- performance scenario selector when Performance is selected.
-
-The dashboard must never execute shell commands or tests itself. It sends an authenticated request to the Worker, and the Worker triggers the target repository’s GitHub Actions workflow through the GitHub `workflow_dispatch` API.
-
-```text
-Authenticated dashboard user
-       ↓
-Cloudflare Worker endpoint: POST /api/runs
-       ↓
-GitHub Actions workflow_dispatch
-       ↓
-Selected test jobs and normal report publication
-```
-
-Required Worker secrets:
-
-| Secret | Purpose |
-|---|---|
-| `GITHUB_TOKEN` | Fine-grained token allowed only to dispatch the chosen workflow in the target repository |
-| `GITHUB_REPOSITORY` | Target owner/repository, for example `asevrin/rush-tests` |
-| `GITHUB_WORKFLOW_FILE` | Dispatchable workflow file name |
-
-Security requirements:
-
-- The Worker endpoint accepts only authenticated dashboard sessions.
-- Validate every input against an allow-list; never forward arbitrary commands, branch names or URLs.
-- Use a fine-grained token with the smallest possible repository/workflow permission.
-- Do not expose the token, dispatch response or secret configuration in dashboard JavaScript.
-- Show a clear success/error message and link to the created GitHub workflow run when GitHub returns it.
-- Apply a short per-session rate limit to prevent accidental repeated launches.
-
-The workflow receives declared inputs such as `suite`, `environment` and `performanceScenario`; it does not accept command strings.
+The dashboard is read-only. It does not trigger GitHub Actions workflows and does not store GitHub dispatch credentials. Manual test launches remain available only through GitHub Actions.
 
 ## 8. Application deployment triggers — final step
 
