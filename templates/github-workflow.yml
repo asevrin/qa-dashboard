@@ -263,7 +263,7 @@ jobs:
         run: |
           git -C reports-site config user.name "github-actions[bot]"
           git -C reports-site config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git -C reports-site add site
+          git -C reports-site add -f site
           git -C reports-site diff --cached --quiet || {
             git -C reports-site commit -m "Archive QA reports #${{ github.run_number }}"
             git -C reports-site push origin reports
@@ -279,11 +279,11 @@ jobs:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
         run: npm exec --yes --package=wrangler@4 -- wrangler deploy --config=qa-dashboard.wrangler.jsonc --secrets-file=.report-secrets.json
-      - name: Notify Slack about new failures
+      - name: Notify Slack about test results
         env:
           SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
           REPORTS_PORTAL_URL: ${{ secrets.REPORTS_PORTAL_URL }}
-        run: pnpm exec qa-dashboard notify-slack reports-site/site/dashboard-data/reports.json
+        run: pnpm exec qa-dashboard notify-slack reports-site/site/dashboard-data/reports.json --run-id=${{ github.run_number }}
 
   verify-results:
     needs: [api-tests, ui-tests, integration-tests, performance-tests, publish-reports]

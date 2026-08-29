@@ -97,7 +97,7 @@ function help() {
   qa-dashboard build [--source=PATH] [--type=api|ui|integrations] [--environment=NAME] [--run-id=ID] [--status=success|failure] [--name=REPORT_NAME]
   qa-dashboard publish-performance --summary=PATH --scenario=public|auth|mixed [--html=PATH] [--environment=NAME] [--run-id=ID] [--status=success|failure]
   qa-dashboard create-secrets [output-file]
-  qa-dashboard notify-slack <reports.json>
+  qa-dashboard notify-slack <reports.json> [--run-id=ID]
 
 Run \"qa-dashboard init\" from the root of a Playwright + Allure test repository.`);
 }
@@ -114,7 +114,7 @@ async function main() {
     return console.log(`Published performance run ${run.id}; gate: ${run.gate}.`);
   }
   if (command === "create-secrets") return createReportSecrets(argumentsList[0] || ".report-secrets.json");
-  if (command === "notify-slack") return notifySlack(argumentsList[0]);
+  if (command === "notify-slack") return notifySlack(argumentsList[0], process.env, option("run-id", ""));
   throw new Error(`Unknown command: ${command}`);
 }
 

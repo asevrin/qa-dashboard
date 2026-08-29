@@ -165,10 +165,10 @@ pnpm exec qa-dashboard build
 pnpm exec qa-dashboard build --source=allure-ui --type=ui --environment=Staging --run-id=42 --status=success
 pnpm exec qa-dashboard publish-performance --summary=performance-results/public/summary.json --html=performance-results/public/report.html --scenario=public --environment=Staging --run-id=42 --status=success
 pnpm exec qa-dashboard create-secrets .report-secrets.json
-pnpm exec qa-dashboard notify-slack reports-site/site/dashboard-data/reports.json
+pnpm exec qa-dashboard notify-slack reports-site/site/dashboard-data/reports.json --run-id=42
 ```
 
-`build` requires `RUN_ID` and `TEST_STATUS`, unless `REPORT_NAME` is supplied. The CLI also accepts `--source`, `--type`, `--environment`, `--run-id` and `--status`, which are used by the sequential publisher job.
+`build` requires `RUN_ID` and `TEST_STATUS`, unless `REPORT_NAME` is supplied. The CLI also accepts `--source`, `--type`, `--environment`, `--run-id` and `--status`, which are used by the sequential publisher job. `notify-slack` sends one result notification for each functional report matching `--run-id`, including successful and failed runs; without it, it sends the newest report only.
 
 ## Development and release
 
