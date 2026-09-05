@@ -174,12 +174,6 @@
               <option value="automated">Automated</option>
             </select></label
           ><label class="full"
-            >Expected result<textarea
-              id="case-expected"
-              rows="3"
-              maxlength="20000"
-            ></textarea></label
-          ><label class="full"
             >Notes<textarea
               id="case-notes"
               rows="2"
@@ -189,23 +183,29 @@
             >Tags <span class="field-hint">comma-separated</span
             ><input id="case-tags" placeholder="Login, Guest" maxlength="1000"
           /></label>
-        </div>
-        <section class="case-steps">
-          <div class="case-steps-heading">
-            <div>
-              <h3>Steps</h3>
-              <p>Optional step-by-step instructions for manual execution.</p>
+          <section class="case-steps">
+            <div class="case-steps-heading">
+              <div>
+                <h3>Steps</h3>
+                <p>Optional step-by-step instructions for manual execution.</p>
+              </div>
+              <button class="secondary-button" id="add-step" type="button">
+                Add step
+              </button>
             </div>
-            <button class="secondary-button" id="add-step" type="button">
-              Add step
-            </button>
-          </div>
-          <div id="steps-list"></div>
-        </section>
+            <div id="steps-list"></div>
+          </section>
+          <label class="full"
+            >Expected result<textarea
+              id="case-expected"
+              rows="3"
+              maxlength="20000"
+            ></textarea></label
+        </div>
         <p class="form-message" id="case-message" aria-live="polite"></p>
         <div class="dialog-actions">
           <button class="danger-button" id="case-delete" type="button" hidden>
-            Delete case</button
+            Delete</button
           ><button class="primary-button" id="case-submit" type="submit">
             Create case
           </button

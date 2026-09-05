@@ -106,7 +106,7 @@
 }
 .run-step {
   display: grid;
-  grid-template-columns: 30px 1fr;
+  grid-template-columns: 30px minmax(0, 1fr);
   gap: 10px;
   padding: 10px;
   border-radius: 8px;
@@ -114,6 +114,46 @@
 }
 .run-step strong {
   color: var(--blue);
+}
+.run-step-action,
+.run-step-expected {
+  min-width: 0;
+}
+.run-step-action > b {
+  display: block;
+  color: var(--text);
+  font-weight: 400;
+}
+.run-step-data {
+  margin-top: 4px !important;
+  color: var(--muted);
+  font-size: 13px;
+}
+.run-step-expected {
+  position: relative;
+  grid-column: 1 / -1;
+  margin-top: 5px;
+  padding: 0 0 0 40px;
+}
+.run-step-expected::before {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 12px;
+  width: 1px;
+  background: var(--line);
+  content: "";
+}
+.run-step-action > span,
+.run-step-expected span {
+  display: block;
+  margin-bottom: 6px;
+  color: var(--text);
+  font-size: 15px;
+  font-weight: 800;
+}
+.run-step-expected p {
+  color: var(--text);
 }
 .artifact-heading {
   display: flex;

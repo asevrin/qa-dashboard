@@ -79,7 +79,7 @@ function renderCase() {
     ? `<div class="run-steps">${caseItem.steps
         .map(
           (step, index) => `
-    <div class="run-step"><strong>${index + 1}</strong><div><b>${escapeHtml(step.action)}</b>${step.testData ? `<p>${escapeHtml(step.testData)}</p>` : ""}${step.expectedResult ? `<p>${escapeHtml(step.expectedResult)}</p>` : ""}</div></div>`,
+    <div class="run-step"><strong>${index + 1}</strong><div class="run-step-action"><span>Action</span><b>${escapeHtml(step.action)}</b>${step.testData ? `<p class="run-step-data">${escapeHtml(step.testData)}</p>` : ""}</div>${step.expectedResult ? `<div class="run-step-expected"><span>Expected result</span><p>${escapeHtml(step.expectedResult)}</p></div>` : ""}</div>`,
         )
         .join("")}</div>`
     : "<p>No explicit steps.</p>";
@@ -89,12 +89,15 @@ function renderCase() {
   const defects = caseItem.defects.length
     ? `<ul class="artifact-list">${caseItem.defects.map((item) => `<li><span class="defect-severity ${escapeHtml(item.severity)}">${escapeHtml(item.severity)}</span><strong>#${item.defectNumber} · ${escapeHtml(item.title)}</strong></li>`).join("")}</ul>`
     : "<p class=artifact-empty>No defects yet.</p>";
+  const problemArtifacts = ["failed", "blocked"].includes(caseItem.result)
+    ? `<section class="execution-section case-artifacts"><div class="artifact-heading"><h3>Evidence <span>${caseItem.evidence.length}</span></h3></div>${evidence}</section><section class="execution-section case-artifacts"><div class="artifact-heading"><h3>Defects <span>${caseItem.defects.length}</span></h3></div>${defects}</section>`
+    : "";
   const result =
     state.run.status === "in_progress"
       ? `<textarea class="result-comment" id="result-comment" rows="3" placeholder="Comment for failed or blocked case…">${escapeHtml(caseItem.resultComment)}</textarea><div class="result-actions"><button class="passed" data-result="passed">Passed</button><button class="failed" data-result="failed">Failed</button><button class="blocked" data-result="blocked">Blocked</button><button data-result="skipped">Skipped</button><button data-result="pending">Reset</button></div><p class="result-message" id="result-message"></p>`
       : `<p class="read-only-result ${escapeHtml(caseItem.result)}">${escapeHtml(caseItem.result)}${caseItem.resultComment ? ` · ${escapeHtml(caseItem.resultComment)}` : ""}</p>`;
   $("#execution-case").innerHTML =
-    `<div class="case-kicker">${escapeHtml(caseItem.caseKey)} · ${escapeHtml(caseItem.priority)} · ${escapeHtml(caseItem.executionScope)}</div><h2>${escapeHtml(caseItem.title)}</h2><section class="execution-section"><h3>Preconditions</h3><p>${escapeHtml(caseItem.preconditions || "None")}</p></section><section class="execution-section"><h3>Expected result</h3><p>${escapeHtml(caseItem.expectedResult || "Not specified")}</p></section><section class="execution-section"><h3>Steps</h3>${steps}</section><section class="execution-section case-artifacts"><div class="artifact-heading"><h3>Evidence <span>${caseItem.evidence.length}</span></h3></div>${evidence}</section><section class="execution-section case-artifacts"><div class="artifact-heading"><h3>Defects <span>${caseItem.defects.length}</span></h3></div>${defects}</section><section class="execution-section"><h3>Result</h3>${result}</section>`;
+    `<div class="case-kicker">${escapeHtml(caseItem.caseKey)} · ${escapeHtml(caseItem.priority)} · ${escapeHtml(caseItem.executionScope)}</div><h2>${escapeHtml(caseItem.title)}</h2><section class="execution-section"><h3>Preconditions</h3><p>${escapeHtml(caseItem.preconditions || "None")}</p></section><section class="execution-section"><h3>Steps</h3>${steps}</section><section class="execution-section"><h3>Expected result</h3><p>${escapeHtml(caseItem.expectedResult || "Not specified")}</p></section>${problemArtifacts}<section class="execution-section"><h3>Result</h3>${result}</section>`;
   $("#execution-case")
     .querySelectorAll("[data-result]")
     .forEach((button) => {

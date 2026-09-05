@@ -22,6 +22,12 @@ Export creates one CSV containing these columns:
 
 For the current checklist conversion, each Google Sheet tab maps to one TMS suite; the spreadsheet's functional `Scope` value is stored as a tag.
 
+## Checklist synchronization
+
+`Synchronize CSV` maintains a source checklist whose stable `case_id` values already exist in TMS. It previews new, updated, unchanged, and archive-candidate cases before any changes are applied. Applying the sync creates new IDs and updates matching IDs in place; existing plans retain their links and historical runs retain their immutable snapshots.
+
+TMS records the CSV file and synchronized content fingerprint for every source-managed case, and keeps a recent sync audit in the dialog. Only cases previously synchronized from the same CSV file become archive candidates. They are archived only when the user explicitly selects the archive confirmation in the preview; no case is deleted automatically.
+
 ## Local development
 
 ```bash
@@ -30,4 +36,3 @@ pnpm tms:dev
 ```
 
 Open `http://localhost:8787/tms/`. Local D1 state and `tms/dev/.dev.vars` are intentionally ignored by git.
-

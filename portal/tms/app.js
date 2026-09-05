@@ -11,6 +11,7 @@ const state = {
   tag: "all",
   steps: [],
   importPreview: null,
+  syncPreview: null,
 };
 const $ = (selector) => document.querySelector(selector);
 function escapeHtml(value) {
@@ -122,7 +123,7 @@ function renderSteps() {
     state.steps
       .map(
         (step, index) =>
-          `<article class="step-editor"><div class="step-editor-heading"><strong>Step ${index + 1}</strong><button class="text-button" type="button" data-remove-step="${index}">Remove</button></div><label>Action<textarea data-step="action" data-index="${index}" rows="2" maxlength="20000" required>${escapeHtml(step.action)}</textarea></label><label>Test data<textarea data-step="testData" data-index="${index}" rows="2" maxlength="20000">${escapeHtml(step.testData)}</textarea></label><label>Expected result<textarea data-step="expectedResult" data-index="${index}" rows="2" maxlength="20000">${escapeHtml(step.expectedResult)}</textarea></label></article>`,
+          `<article class="step-editor"><div class="step-editor-heading"><strong>Step ${index + 1}</strong><button class="step-remove-button" type="button" data-remove-step="${index}" aria-label="Remove step ${index + 1}" title="Remove step"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M10 11v6m4-6v6M9 7l1-2h4l1 2m-9 0 1 13h10l1-13" /></svg></button></div><label>Action<textarea data-step="action" data-index="${index}" rows="1" maxlength="20000" required>${escapeHtml(step.action)}</textarea></label><label>Expected result<textarea data-step="expectedResult" data-index="${index}" rows="1" maxlength="20000">${escapeHtml(step.expectedResult)}</textarea></label><details class="step-editor-optional"${step.testData ? " open" : ""}><summary>Test data <span>Optional</span></summary><label><textarea data-step="testData" data-index="${index}" rows="1" maxlength="20000" placeholder="Add values, credentials, or setup data…">${escapeHtml(step.testData)}</textarea></label></details></article>`,
       )
       .join("") ||
     `<p class="case-steps-empty">No steps yet. Add a step if the case needs an explicit flow.</p>`;
@@ -206,7 +207,7 @@ function openCase(id) {
   $("#case-automation").value = item.automationStatus;
   $("#case-tags").value = item.tags.join(", ");
   $("#case-dialog-title").textContent = `Edit ${item.caseKey}`;
-  $("#case-submit").textContent = "Save changes";
+  $("#case-submit").textContent = "Save";
   renderSteps();
   openDialog("#case-dialog");
 }
@@ -295,6 +296,10 @@ function wireForms() {
   $("#add-step").addEventListener("click", () => {
     state.steps.push({ action: "", testData: "", expectedResult: "" });
     renderSteps();
+    requestAnimationFrame(() => {
+      const actions = $("#steps-list").querySelectorAll('[data-step="action"]');
+      actions[actions.length - 1]?.focus();
+    });
   });
   $("#suite-form").addEventListener("submit", (event) => {
     event.preventDefault();
@@ -398,7 +403,7 @@ function setupCaseTabs() {
 }
 function refineGeneralTab() {
   const style = document.createElement("style");
-  style.textContent = `.form-grid .case-tab-general{grid-column:1/-1}.form-grid .case-tab-general textarea{min-height:82px}.case-steps{padding-top:4px}`;
+  style.textContent = `.form-grid .case-tab-general{grid-column:1/-1}.form-grid > label.case-tab-general textarea{min-height:82px}.case-steps{padding-top:4px}`;
   document.head.append(style);
 }
 function csvCell(value) {
@@ -694,16 +699,84 @@ async function confirmCsvImport() {
     if (state.importPreview) button.disabled = false;
   }
 }
+function resetSyncPreview() {
+  state.syncPreview = null;
+  const preview = $("#sync-preview");
+  preview.hidden = true;
+  preview.innerHTML = "";
+  $("#sync-apply").disabled = true;
+}
+function syncExamples(items) {
+  return items.slice(0, 5).map((item) => `<li><code>${escapeHtml(item.caseKey)}</code> ${escapeHtml(item.title)}</li>`).join("");
+}
+function renderSyncPreview(preview) {
+  const target = $("#sync-preview");
+  const sections = [["New test cases", preview.created], ["Test cases to update", preview.updated], ["Archive candidates", preview.archiveCandidates]]
+    .filter(([, items]) => items.length)
+    .map(([label, items]) => `<div><span class="import-preview-label">${label}</span><ul>${syncExamples(items)}</ul></div>`).join("");
+  target.hidden = false;
+  const archiveChoice = preview.archiveCandidates.length
+    ? `<label class="sync-archive-choice"><input id="sync-archive-missing" type="checkbox">Archive ${preview.archiveCandidates.length} case${preview.archiveCandidates.length === 1 ? "" : "s"} missing from this CSV</label>`
+    : "";
+  target.innerHTML = `<strong>Synchronization preview for ${escapeHtml(preview.fileName)}</strong><dl><div><dt>Rows in file</dt><dd>${preview.total}</dd></div><div><dt>New</dt><dd>${preview.created.length}</dd></div><div><dt>Updated</dt><dd>${preview.updated.length}</dd></div><div><dt>Unchanged</dt><dd>${preview.unchanged.length}</dd></div><div><dt>Archive candidates</dt><dd>${preview.archiveCandidates.length}</dd></div></dl>${sections}${archiveChoice}<p>Applying updates creates new IDs and updates matching IDs. Archive candidates are unchanged unless selected above.</p>`;
+}
+async function previewChecklistSync(file) {
+  const message = $("#sync-message");
+  if (!file) return void (message.textContent = "Choose a CSV file first.");
+  let cases;
+  try { cases = csvCases(await file.text()); } catch (error) { message.textContent = error.message; return; }
+  const response = await fetch("/api/tms/checklist-sync/preview", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ fileName: file.name, cases }) });
+  const preview = await response.json();
+  if (!response.ok) return void (message.textContent = preview.error || "Could not preview synchronization.");
+  state.syncPreview = { fileName: file.name, cases, preview };
+  renderSyncPreview(preview);
+  $("#sync-apply").disabled = !preview.created.length && !preview.updated.length;
+  message.textContent = preview.created.length || preview.updated.length ? "Review the changes, then apply synchronization." : "This checklist is already up to date.";
+  message.className = "form-message";
+}
+async function applyChecklistSync() {
+  const message = $("#sync-message");
+  if (!state.syncPreview) return;
+  const button = $("#sync-apply");
+  button.disabled = true;
+  message.textContent = "Synchronizing checklist…";
+  try {
+    const response = await fetch("/api/tms/checklist-sync/apply", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ fileName: state.syncPreview.fileName, cases: state.syncPreview.cases, archiveMissing: $("#sync-archive-missing")?.checked }) });
+    const result = await response.json();
+    if (!response.ok) throw new Error(result.error || "Could not synchronize checklist.");
+    await loadRepository();
+    message.textContent = `Synchronized ${result.fileName}: ${result.created} new, ${result.updated} updated, ${result.unchanged} unchanged.${result.archived ? ` ${result.archived} archived.` : result.archiveCandidates.length ? ` ${result.archiveCandidates.length} archive candidates were not changed.` : ""}`;
+    message.className = "form-message success";
+    state.syncPreview = null;
+  } catch (error) {
+    message.textContent = error.message || "Synchronization failed.";
+    message.className = "form-message";
+    button.disabled = false;
+  }
+}
+async function loadSyncHistory() {
+  const target = $("#sync-history");
+  const response = await fetch("/api/tms/checklist-sync/history");
+  if (!response.ok) return;
+  const history = await response.json();
+  target.innerHTML = history.length
+    ? `<h3>Recent syncs</h3><ul>${history.map((item) => `<li><strong>${escapeHtml(item.sourceFile)}</strong> · ${item.created} new, ${item.updated} updated${item.archived ? `, ${item.archived} archived` : ""}<span>${escapeHtml(item.appliedAt)}</span></li>`).join("")}</ul>`
+    : "";
+}
 function setupTransfer() {
   document
     .querySelector(".primary-actions")
     .insertAdjacentHTML(
       "afterbegin",
-      '<button class="secondary-button" id="export-csv" type="button">Export CSV</button><button class="secondary-button" id="import-csv" type="button">Import CSV</button>',
+      '<button class="secondary-button" id="export-csv" type="button">Export CSV</button><button class="secondary-button" id="import-csv" type="button">Import CSV</button><button class="secondary-button" id="sync-csv" type="button">Synchronize CSV</button>',
     );
   document.body.insertAdjacentHTML(
     "beforeend",
     '<dialog id="import-dialog"><form method="dialog"><div class="dialog-heading"><h2>Import test cases</h2><button class="icon-button" data-import-close type="button">×</button></div><p>Preview a CSV exported from Manual TMS before creating anything. Missing suites are created; existing Case IDs are skipped.</p><label>CSV file<input id="import-file" type="file" accept=".csv,text/csv" required></label><section class="import-preview" id="import-preview" hidden></section><p class="form-message" id="import-message" aria-live="polite"></p><div class="dialog-actions"><button class="secondary-button" data-import-close type="button">Cancel</button><button class="secondary-button" id="import-preview-submit" type="button">Preview import</button><button class="primary-button" id="import-confirm-submit" type="button" disabled>Confirm import</button></div></form></dialog>',
+  );
+  document.body.insertAdjacentHTML(
+    "beforeend",
+    '<dialog id="sync-dialog"><form method="dialog"><div class="dialog-heading"><h2>Synchronize checklist</h2><button class="icon-button" data-sync-close type="button">×</button></div><p>Matching Case IDs are updated in place. New IDs are created. Cases absent from this CSV are archive candidates until you explicitly choose to archive them.</p><label>Checklist CSV<input id="sync-file" type="file" accept=".csv,text/csv" required></label><section class="import-preview" id="sync-preview" hidden></section><section class="sync-history" id="sync-history"></section><p class="form-message" id="sync-message" aria-live="polite"></p><div class="dialog-actions"><button class="secondary-button" data-sync-close type="button">Cancel</button><button class="secondary-button" id="sync-preview-submit" type="button">Preview changes</button><button class="primary-button" id="sync-apply" type="button" disabled>Apply sync</button></div></form></dialog>',
   );
   $("#export-csv").onclick = exportCsv;
   $("#import-csv").onclick = () => {
@@ -712,6 +785,13 @@ function setupTransfer() {
     $("#import-message").textContent = "";
     $("#import-dialog").showModal();
   };
+  $("#sync-csv").onclick = () => {
+    $("#sync-dialog form").reset();
+    resetSyncPreview();
+    $("#sync-message").textContent = "";
+    loadSyncHistory();
+    $("#sync-dialog").showModal();
+  };
   $("#import-file").onchange = () => {
     resetImportPreview();
     $("#import-message").textContent = "";
@@ -719,8 +799,17 @@ function setupTransfer() {
   $("#import-preview-submit").onclick = () =>
     previewCsv($("#import-file").files[0]);
   $("#import-confirm-submit").onclick = confirmCsvImport;
+  $("#sync-file").onchange = () => {
+    resetSyncPreview();
+    $("#sync-message").textContent = "";
+  };
+  $("#sync-preview-submit").onclick = () => previewChecklistSync($("#sync-file").files[0]);
+  $("#sync-apply").onclick = applyChecklistSync;
   document.querySelectorAll("[data-import-close]").forEach((button) => {
     button.onclick = () => $("#import-dialog").close();
+  });
+  document.querySelectorAll("[data-sync-close]").forEach((button) => {
+    button.onclick = () => $("#sync-dialog").close();
   });
 }
 setTheme();

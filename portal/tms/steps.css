@@ -1,5 +1,6 @@
 .case-steps {
   display: grid;
+  grid-column: 1 / -1;
   gap: 9px;
 }
 .case-steps-heading {
@@ -32,16 +33,14 @@
 }
 .step-editor {
   display: grid;
-  grid-template-columns: 1fr 1fr 1fr;
-  gap: 9px;
-  padding: 11px;
+  gap: 13px;
+  padding: 14px;
   border: 1px solid var(--line);
   border-radius: 9px;
   background: var(--surface-2);
 }
 .step-editor-heading {
   display: flex;
-  grid-column: 1/-1;
   align-items: center;
   justify-content: space-between;
 }
@@ -49,13 +48,54 @@
   font-size: 13px;
 }
 .step-editor textarea {
-  min-height: 58px;
+  height: 36px;
+  min-height: 36px;
 }
-@media (max-width: 620px) {
-  .step-editor {
-    grid-template-columns: 1fr;
-  }
-  .step-editor-heading {
-    grid-column: auto;
-  }
+.step-remove-button {
+  display: grid;
+  width: 30px;
+  height: 30px;
+  padding: 0;
+  place-items: center;
+  border: 0;
+  border-radius: 7px;
+  background: transparent;
+  color: var(--muted);
+  cursor: pointer;
+}
+.step-remove-button:hover {
+  background: #ff71851a;
+  color: var(--red);
+}
+.step-remove-button svg {
+  width: 16px;
+  height: 16px;
+  fill: none;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 1.8;
+}
+.step-editor-optional {
+  border-top: 1px solid var(--line);
+  padding-top: 10px;
+}
+.step-editor-optional summary {
+  width: fit-content;
+  color: var(--muted);
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 700;
+}
+.step-editor-optional summary span {
+  margin-left: 4px;
+  font-size: 11px;
+  font-weight: 500;
+}
+.step-editor-optional label {
+  display: block;
+  margin-top: 10px;
+}
+.step-editor-optional textarea {
+  min-height: 36px;
 }

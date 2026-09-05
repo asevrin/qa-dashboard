@@ -73,6 +73,23 @@ function validateCase(body) {
   return { caseKey, suiteId, title, expectedResult, preconditions, notes, priority, executionScope, status, automationStatus, tags, steps };
 }
 
+function validateChecklistSync(body) {
+  if (!body || typeof body !== "object" || Array.isArray(body) || !Array.isArray(body.cases) || body.cases.length > 5_000) return null;
+  const fileName = string(body.fileName, "checklist.csv", 500);
+  const caseKeys = new Set();
+  const cases = body.cases.map((item) => {
+    const suitePath = Array.isArray(item?.suitePath)
+      ? item.suitePath.map((name) => string(name, "", maxTitleLength))
+      : null;
+    const parsed = validateCase({ ...item, suiteId: "checklist-sync" });
+    if (!suitePath?.length || suitePath.some((name) => !name) || !parsed || caseKeys.has(parsed.caseKey)) return null;
+    caseKeys.add(parsed.caseKey);
+    return { ...parsed, suitePath };
+  });
+  const archiveMissing = body.archiveMissing === true;
+  return fileName && cases.every(Boolean) ? { fileName, cases, archiveMissing } : null;
+}
+
 function validatePlan(body) {
   if (!body || typeof body !== "object" || Array.isArray(body)) return null;
   const name = string(body.name, "", maxTitleLength);
@@ -200,6 +217,125 @@ async function updateCase(db, id, input) {
     ...input.steps.map((step, position) => db.prepare("INSERT INTO tms_case_steps (id, case_id, position, action, test_data, expected_result) VALUES (?1, ?2, ?3, ?4, ?5, ?6)").bind(crypto.randomUUID(), id, position, step.action, step.testData, step.expectedResult)),
   ]);
   return json({ id, ...input });
+}
+
+function repositorySuitePaths(suites) {
+  const byId = new Map(suites.map((suite) => [suite.id, suite]));
+  const paths = new Map();
+  const pathFor = (id) => {
+    if (paths.has(id)) return paths.get(id);
+    const suite = byId.get(id);
+    const path = suite ? [...(suite.parentId ? pathFor(suite.parentId) : []), suite.name] : [];
+    paths.set(id, path);
+    return path;
+  };
+  suites.forEach((suite) => pathFor(suite.id));
+  return paths;
+}
+
+function checklistSignature(item) {
+  return JSON.stringify({
+    suitePath: item.suitePath,
+    title: item.title,
+    priority: item.priority,
+    executionScope: item.executionScope,
+    status: item.status,
+    automationStatus: item.automationStatus,
+    preconditions: item.preconditions,
+    expectedResult: item.expectedResult,
+    notes: item.notes,
+    tags: [...item.tags].sort(),
+    steps: item.steps,
+  });
+}
+
+function checklistHash(item) {
+  let value = 2166136261;
+  for (const character of checklistSignature(item)) {
+    value ^= character.charCodeAt(0);
+    value = Math.imul(value, 16777619);
+  }
+  return (value >>> 0).toString(16).padStart(8, "0");
+}
+
+async function checklistPreview(db, input) {
+  const repository = await readRepository(db);
+  const paths = repositorySuitePaths(repository.suites);
+  const existing = new Map(repository.cases.map((item) => [item.caseKey, { ...item, suitePath: paths.get(item.suiteId) || [] }]));
+  const incomingKeys = new Set(input.cases.map((item) => item.caseKey));
+  const created = [];
+  const updated = [];
+  const unchanged = [];
+  for (const item of input.cases) {
+    const current = existing.get(item.caseKey);
+    if (!current) created.push(item);
+    else if (checklistSignature(current) === checklistSignature(item)) unchanged.push(item);
+    else updated.push(item);
+  }
+  const sourced = await db.prepare("SELECT s.case_id AS caseId, c.case_key AS caseKey, c.title FROM tms_case_sources s JOIN tms_cases c ON c.id = s.case_id WHERE s.source_file = ?1").bind(input.fileName).all();
+  const archiveCandidates = sourced.results
+    .filter((item) => !incomingKeys.has(item.caseKey))
+    .map((item) => ({ caseId: item.caseId, caseKey: item.caseKey, title: item.title }));
+  return { fileName: input.fileName, total: input.cases.length, created, updated, unchanged, archiveCandidates };
+}
+
+async function ensureChecklistSuites(db, cases) {
+  const suites = (await db.prepare("SELECT id, parent_id AS parentId, name FROM tms_suites ORDER BY parent_id, position, name").all()).results;
+  const paths = repositorySuitePaths(suites);
+  const ids = new Map(suites.map((suite) => [JSON.stringify(paths.get(suite.id)), suite.id]));
+  for (const item of cases) {
+    let parentId = null;
+    for (let index = 0; index < item.suitePath.length; index += 1) {
+      const path = item.suitePath.slice(0, index + 1);
+      const key = JSON.stringify(path);
+      if (!ids.has(key)) {
+        const id = crypto.randomUUID();
+        const position = (await db.prepare("SELECT COALESCE(MAX(position), -1) + 1 AS position FROM tms_suites WHERE parent_id IS ?1").bind(parentId).first()).position;
+        await db.prepare("INSERT INTO tms_suites (id, parent_id, name, description, position) VALUES (?1, ?2, ?3, '', ?4)").bind(id, parentId, path.at(-1), position).run();
+        ids.set(key, id);
+      }
+      parentId = ids.get(key);
+    }
+  }
+  return ids;
+}
+
+async function applyChecklistSync(db, input) {
+  const preview = await checklistPreview(db, input);
+  const suiteIds = await ensureChecklistSuites(db, input.cases);
+  const repository = await readRepository(db);
+  const existing = new Map(repository.cases.map((item) => [item.caseKey, item]));
+  for (const item of [...preview.created, ...preview.updated]) {
+    const caseInput = { ...item, suiteId: suiteIds.get(JSON.stringify(item.suitePath)) };
+    if (existing.has(item.caseKey)) await updateCase(db, existing.get(item.caseKey).id, caseInput);
+    else await createCase(db, caseInput);
+  }
+  const refreshed = await readRepository(db);
+  const refreshedByKey = new Map(refreshed.cases.map((item) => [item.caseKey, item]));
+  const sourceStatements = input.cases.map((item) => db.prepare("INSERT INTO tms_case_sources (case_id, source_file, content_hash) VALUES (?1, ?2, ?3) ON CONFLICT(case_id) DO UPDATE SET source_file = excluded.source_file, content_hash = excluded.content_hash, last_synced_at = CURRENT_TIMESTAMP").bind(refreshedByKey.get(item.caseKey).id, input.fileName, checklistHash(item)));
+  const archiveStatements = input.archiveMissing
+    ? preview.archiveCandidates.map((item) => db.prepare("UPDATE tms_cases SET status = 'archived', updated_at = CURRENT_TIMESTAMP WHERE id = ?1").bind(item.caseId))
+    : [];
+  const summary = {
+    fileName: input.fileName,
+    total: input.cases.length,
+    created: preview.created.length,
+    updated: preview.updated.length,
+    unchanged: preview.unchanged.length,
+    archiveCandidates: preview.archiveCandidates,
+    archived: archiveStatements.length,
+  };
+  await db.batch([
+    ...sourceStatements,
+    ...archiveStatements,
+    db.prepare("INSERT INTO tms_sync_runs (id, source_file, summary_json) VALUES (?1, ?2, ?3)").bind(crypto.randomUUID(), input.fileName, JSON.stringify({ ...summary, archiveCandidates: summary.archiveCandidates.map((item) => item.caseKey) })),
+  ]);
+  return summary;
+}
+
+async function readChecklistSyncHistory(db) {
+  const rows = await db.prepare("SELECT id, source_file AS sourceFile, summary_json AS summaryJson, applied_at AS appliedAt FROM tms_sync_runs ORDER BY applied_at DESC LIMIT 20").all();
+  return rows.results.map((row) => ({ id: row.id, sourceFile: row.sourceFile, appliedAt: row.appliedAt, ...JSON.parse(row.summaryJson) }));
 }
 
 async function deleteCase(db, id) {
@@ -369,6 +505,16 @@ export async function handleTmsRequest(request, env, url) {
   if (url.pathname === "/api/tms/repository") {
     if (request.method !== "GET") return json({ error: "Method not allowed" }, 405, { Allow: "GET" });
     return json(await readRepository(db));
+  }
+  if (url.pathname === "/api/tms/checklist-sync/preview" || url.pathname === "/api/tms/checklist-sync/apply") {
+    if (request.method !== "POST") return json({ error: "Method not allowed" }, 405, { Allow: "POST" });
+    const input = validateChecklistSync(await request.json().catch(() => null));
+    if (!input) return json({ error: "Invalid checklist CSV data" }, 400);
+    return url.pathname.endsWith("/preview") ? json(await checklistPreview(db, input)) : json(await applyChecklistSync(db, input));
+  }
+  if (url.pathname === "/api/tms/checklist-sync/history") {
+    if (request.method !== "GET") return json({ error: "Method not allowed" }, 405, { Allow: "GET" });
+    return json(await readChecklistSyncHistory(db));
   }
   if (url.pathname === "/api/tms/suites") {
     if (request.method !== "POST") return json({ error: "Method not allowed" }, 405, { Allow: "POST" });
