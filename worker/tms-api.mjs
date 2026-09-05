@@ -363,9 +363,14 @@ async function readPlans(db) {
 
 async function savePlan(db, id, input, isNew) {
   if (input.caseIds.length) {
-    const placeholders = input.caseIds.map((_, index) => `?${index + 1}`).join(", ");
-    const found = await db.prepare(`SELECT id FROM tms_cases WHERE id IN (${placeholders})`).bind(...input.caseIds).all();
-    if (found.results.length !== input.caseIds.length) return json({ error: "One or more selected test cases were not found" }, 404);
+    let foundCount = 0;
+    for (let start = 0; start < input.caseIds.length; start += 100) {
+      const batch = input.caseIds.slice(start, start + 100);
+      const placeholders = batch.map((_, index) => `?${index + 1}`).join(", ");
+      const found = await db.prepare(`SELECT id FROM tms_cases WHERE id IN (${placeholders})`).bind(...batch).all();
+      foundCount += found.results.length;
+    }
+    if (foundCount !== input.caseIds.length) return json({ error: "One or more selected test cases were not found" }, 404);
   }
   if (!isNew) {
     const existing = await db.prepare("SELECT id FROM tms_plans WHERE id = ?1").bind(id).first();
