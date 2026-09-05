@@ -393,10 +393,13 @@ async function createRun(db, input) {
   const selected = await db.prepare("SELECT c.id, c.case_key AS caseKey, c.title, c.expected_result AS expectedResult, c.preconditions, c.notes, c.priority, c.execution_scope AS executionScope, pc.position FROM tms_plan_cases pc JOIN tms_cases c ON c.id = pc.case_id WHERE pc.plan_id = ?1 AND c.status != 'archived' ORDER BY pc.position").bind(input.planId).all();
   if (!selected.results.length) return json({ error: "Test plan has no runnable test cases" }, 400);
   const ids = selected.results.map((item) => item.id);
-  const placeholders = ids.map((_, index) => `?${index + 1}`).join(", ");
-  const steps = await db.prepare(`SELECT case_id AS caseId, position, action, test_data AS testData, expected_result AS expectedResult FROM tms_case_steps WHERE case_id IN (${placeholders}) ORDER BY case_id, position`).bind(...ids).all();
   const stepsByCase = new Map();
-  for (const step of steps.results) stepsByCase.set(step.caseId, [...(stepsByCase.get(step.caseId) || []), { action: step.action, testData: step.testData, expectedResult: step.expectedResult }]);
+  for (let start = 0; start < ids.length; start += 100) {
+    const batch = ids.slice(start, start + 100);
+    const placeholders = batch.map((_, index) => `?${index + 1}`).join(", ");
+    const steps = await db.prepare(`SELECT case_id AS caseId, position, action, test_data AS testData, expected_result AS expectedResult FROM tms_case_steps WHERE case_id IN (${placeholders}) ORDER BY case_id, position`).bind(...batch).all();
+    for (const step of steps.results) stepsByCase.set(step.caseId, [...(stepsByCase.get(step.caseId) || []), { action: step.action, testData: step.testData, expectedResult: step.expectedResult }]);
+  }
   const numberRow = await db.prepare("UPDATE tms_sequences SET value = value + 1 WHERE name = 'run' RETURNING value AS runNumber").first();
   const id = crypto.randomUUID();
   await db.batch([
